@@ -8,19 +8,25 @@ interface MetricsTableProps {
 interface MetricRow {
   label: string;
   value: string;
-  status: 'good' | 'warn' | 'bad';
+  status: 'good' | 'warn' | 'bad' | 'neutral';
   description: string;
 }
 
-function statusColor(status: 'good' | 'warn' | 'bad'): string {
+function statusColor(status: 'good' | 'warn' | 'bad' | 'neutral'): string {
   switch (status) {
     case 'good': return 'text-emerald-600 bg-emerald-50';
     case 'warn': return 'text-amber-600 bg-amber-50';
     case 'bad': return 'text-red-600 bg-red-50';
+    case 'neutral': return 'text-gray-600 bg-gray-100';
   }
 }
 
 export function MetricsTable({ analysis }: MetricsTableProps) {
+  const isRunwayNotApplicable =
+    analysis.cash_runway_months === null ||
+    analysis.burn_rate <= 0 ||
+    analysis.cash_runway_months >= 999;
+
   const rows: MetricRow[] = [
     {
       label: 'Profit Margin',
@@ -36,8 +42,16 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
     },
     {
       label: 'Cash Runway',
-      value: `${analysis.cash_runway_months.toFixed(1)} months`,
-      status: analysis.cash_runway_months >= 12 ? 'good' : analysis.cash_runway_months >= 6 ? 'warn' : 'bad',
+      value: isRunwayNotApplicable
+        ? 'N/A'
+        : `${analysis.cash_runway_months!.toFixed(1)} months`,
+      status: isRunwayNotApplicable
+        ? 'neutral'
+        : analysis.cash_runway_months! >= 12
+        ? 'good'
+        : analysis.cash_runway_months! >= 6
+        ? 'warn'
+        : 'bad',
       description: 'How long current cash lasts at burn rate',
     },
     {

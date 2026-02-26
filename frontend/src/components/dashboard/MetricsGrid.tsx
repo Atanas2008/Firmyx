@@ -22,6 +22,11 @@ interface MetricItem {
 }
 
 export function MetricsGrid({ analysis }: MetricsGridProps) {
+  const isRunwayNotApplicable =
+    analysis.cash_runway_months === null ||
+    analysis.burn_rate <= 0 ||
+    analysis.cash_runway_months >= 999;
+
   const metrics: MetricItem[] = [
     {
       label: 'Profit Margin',
@@ -49,15 +54,18 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
     },
     {
       label: 'Cash Runway',
-      value: `${analysis.cash_runway_months.toFixed(1)} mo`,
+      value: isRunwayNotApplicable
+        ? 'N/A'
+        : `${analysis.cash_runway_months!.toFixed(1)} mo`,
       icon: <Clock className="h-5 w-5" />,
       description: 'Months until cash runs out',
-      color:
-        analysis.cash_runway_months >= 12
-          ? 'text-emerald-600'
-          : analysis.cash_runway_months >= 6
-          ? 'text-amber-600'
-          : 'text-red-600',
+      color: isRunwayNotApplicable
+        ? 'text-gray-500'
+        : analysis.cash_runway_months! >= 12
+        ? 'text-emerald-600'
+        : analysis.cash_runway_months! >= 6
+        ? 'text-amber-600'
+        : 'text-red-600',
     },
     {
       label: 'Debt Ratio',

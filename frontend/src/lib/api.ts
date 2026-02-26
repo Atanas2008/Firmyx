@@ -13,9 +13,10 @@ import type {
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_BASE = `${API_URL.replace(/\/$/, '')}/api`;
 
 export const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -45,14 +46,8 @@ apiClient.interceptors.response.use(
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: (email: string, password: string) => {
-    const form = new URLSearchParams();
-    form.append('username', email);
-    form.append('password', password);
-    return apiClient.post<AuthTokens>('/auth/token', form, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
-  },
+  login: (email: string, password: string) =>
+    apiClient.post<AuthTokens>('/auth/login', { email, password }),
   register: (data: RegisterData) =>
     apiClient.post<User>('/auth/register', data),
 
@@ -62,9 +57,9 @@ export const authApi = {
 // ─── Businesses ──────────────────────────────────────────────────────────────
 
 export const businessApi = {
-  list: () => apiClient.get<Business[]>('/businesses/'),
+  list: () => apiClient.get<Business[]>('/businesses'),
   create: (data: CreateBusinessData) =>
-    apiClient.post<Business>('/businesses/', data),
+    apiClient.post<Business>('/businesses', data),
   get: (id: string) => apiClient.get<Business>(`/businesses/${id}`),
   update: (id: string, data: Partial<CreateBusinessData>) =>
     apiClient.put<Business>(`/businesses/${id}`, data),
@@ -75,17 +70,14 @@ export const businessApi = {
 
 export const financialApi = {
   list: (businessId: string) =>
-    apiClient.get<FinancialRecord[]>(`/businesses/${businessId}/financials/`),
+    apiClient.get<FinancialRecord[]>(`/businesses/${businessId}/records`),
   create: (businessId: string, data: CreateRecordData) =>
-    apiClient.post<FinancialRecord>(
-      `/businesses/${businessId}/financials/`,
-      data
-    ),
+    apiClient.post<FinancialRecord>(`/businesses/${businessId}/records`, data),
   upload: (businessId: string, file: File) => {
     const form = new FormData();
     form.append('file', file);
     return apiClient.post<FinancialRecord[]>(
-      `/businesses/${businessId}/financials/upload`,
+      `/businesses/${businessId}/records/upload`,
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
@@ -96,9 +88,9 @@ export const financialApi = {
 
 export const analysisApi = {
   run: (businessId: string) =>
-    apiClient.post<RiskAnalysis>(`/businesses/${businessId}/analysis/run`),
+    apiClient.post<RiskAnalysis>(`/businesses/${businessId}/analyze`),
   list: (businessId: string) =>
-    apiClient.get<RiskAnalysis[]>(`/businesses/${businessId}/analysis/`),
+    apiClient.get<RiskAnalysis[]>(`/businesses/${businessId}/analysis`),
   get: (businessId: string, analysisId: string) =>
     apiClient.get<RiskAnalysis>(
       `/businesses/${businessId}/analysis/${analysisId}`
@@ -109,9 +101,9 @@ export const analysisApi = {
 
 export const reportApi = {
   generate: (businessId: string) =>
-    apiClient.post<Report>(`/businesses/${businessId}/reports/generate`),
+    apiClient.post<Report>(`/businesses/${businessId}/reports`),
   list: (businessId: string) =>
-    apiClient.get<Report[]>(`/businesses/${businessId}/reports/`),
+    apiClient.get<Report[]>(`/businesses/${businessId}/reports`),
   downloadUrl: (businessId: string, reportId: string) =>
-    `${API_URL}/businesses/${businessId}/reports/${reportId}/download`,
+    `${API_BASE}/businesses/${businessId}/reports/${reportId}/download`,
 };

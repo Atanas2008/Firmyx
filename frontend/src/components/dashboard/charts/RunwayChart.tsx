@@ -33,7 +33,12 @@ export function RunwayChart({ analyses }: RunwayChartProps) {
     )
     .map((a) => ({
       name: formatDate(a.created_at),
-      Runway: parseFloat(a.cash_runway_months.toFixed(1)),
+      Runway:
+        a.cash_runway_months === null ||
+        a.burn_rate <= 0 ||
+        a.cash_runway_months >= 999
+          ? null
+          : parseFloat(a.cash_runway_months.toFixed(1)),
       Score: a.risk_score,
     }));
 
@@ -60,7 +65,10 @@ export function RunwayChart({ analyses }: RunwayChartProps) {
           tickFormatter={(v: number) => `${v}mo`}
         />
         <Tooltip
-          formatter={(value: number) => [`${value} months`, 'Cash Runway']}
+          formatter={(value) => [
+            value == null ? 'N/A' : `${value} months`,
+            'Cash Runway',
+          ]}
           contentStyle={{
             borderRadius: '8px',
             border: '1px solid #e5e7eb',

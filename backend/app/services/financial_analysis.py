@@ -7,7 +7,7 @@ from app.models.financial_record import FinancialRecord
 class AnalysisResult:
     profit_margin: float
     burn_rate: float
-    cash_runway_months: float
+    cash_runway_months: Optional[float]
     revenue_trend: float
     expense_trend: float
     debt_ratio: float
@@ -47,7 +47,7 @@ class FinancialAnalysisEngine:
         return AnalysisResult(
             profit_margin=round(profit_margin, 4),
             burn_rate=round(burn_rate, 2),
-            cash_runway_months=round(cash_runway, 2),
+            cash_runway_months=round(cash_runway, 2) if cash_runway is not None else None,
             revenue_trend=round(revenue_trend, 4),
             expense_trend=round(expense_trend, 4),
             debt_ratio=round(debt_ratio, 4),
@@ -84,16 +84,17 @@ class FinancialAnalysisEngine:
             return expenses - revenue
         return 0.0
 
-    def _cash_runway(self, cash_reserves: float, burn_rate: float) -> float:
+    def _cash_runway(self, cash_reserves: float, burn_rate: float) -> Optional[float]:
         """
         Cash Runway = Cash Reserves / Burn Rate (in months).
 
         How many months the business can operate before running out of cash,
-        given the current burn rate. Returns 999 (effectively infinite) when
-        there is no burn (the business is profitable or break-even).
+        given the current burn rate. Returns None when there is no burn
+        (the business is profitable or break-even), because runway is not
+        a meaningful finite value in that case.
         """
         if burn_rate <= 0:
-            return 999.0
+            return None
         if cash_reserves <= 0:
             return 0.0
         return cash_reserves / burn_rate
@@ -182,7 +183,7 @@ class FinancialAnalysisEngine:
         self,
         z_score: float,
         burn_rate: float,
-        cash_runway: float,
+        cash_runway: Optional[float],
         profit_margin: float,
     ) -> tuple[float, str]:
         """
@@ -209,7 +210,7 @@ class FinancialAnalysisEngine:
             base = 61.0 + (1.81 - clamped) / (1.81 + 5.0) * 39.0
 
         # Penalty for cash situation
-        if burn_rate > 0:
+        if burn_rate > 0 and cash_runway is not None:
             if cash_runway < 3:
                 base += 10
             elif cash_runway < 6:

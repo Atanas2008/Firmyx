@@ -8,6 +8,11 @@ interface RiskScoreDisplayProps {
 }
 
 export function RiskScoreDisplay({ analysis }: RiskScoreDisplayProps) {
+  const isRunwayNotApplicable =
+    analysis.cash_runway_months === null ||
+    analysis.burn_rate <= 0 ||
+    analysis.cash_runway_months >= 999;
+
   return (
     <div className="flex flex-col items-center gap-4 py-4 sm:flex-row sm:items-start sm:gap-8">
       <HealthScoreCard
@@ -42,7 +47,9 @@ export function RiskScoreDisplay({ analysis }: RiskScoreDisplayProps) {
           <div className="text-center rounded-lg border border-gray-100 p-3">
             <p className="text-xs text-gray-400">Runway</p>
             <p className="mt-0.5 text-lg font-bold text-gray-900">
-              {analysis.cash_runway_months.toFixed(1)} mo
+              {isRunwayNotApplicable
+                ? 'N/A'
+                : `${analysis.cash_runway_months!.toFixed(1)} mo`}
             </p>
           </div>
           <div className="text-center rounded-lg border border-gray-100 p-3">

@@ -38,7 +38,7 @@ export interface RiskAnalysis {
   financial_record_id: string;
   profit_margin: number;
   burn_rate: number;
-  cash_runway_months: number;
+  cash_runway_months: number | null;
   revenue_trend: number;
   expense_trend: number;
   debt_ratio: number;

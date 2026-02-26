@@ -39,18 +39,89 @@ export default function NewBusinessPage() {
   >({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [fixedCostsDisplay, setFixedCostsDisplay] = useState('0.00');
+
+  function formatMoney(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  function parseMoneyInput(raw: string): number {
+    const normalized = raw.replace(/,/g, '').trim();
+    if (!normalized) return 0;
+    const parsed = Number(normalized);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  function validateField(
+    key: keyof CreateBusinessData,
+    value: string | number
+  ): string | undefined {
+    switch (key) {
+      case 'name': {
+        const text = String(value).trim();
+        if (!text) return 'Business name is required.';
+        if (text.length < 2) return 'Business name must be at least 2 characters.';
+        if (text.length > 100) return 'Business name must be at most 100 characters.';
+        return undefined;
+      }
+      case 'industry':
+        return String(value).trim() ? undefined : 'Select an industry.';
+      case 'country': {
+        const text = String(value).trim();
+        if (!text) return 'Country is required.';
+        if (text.length < 2) return 'Country must be at least 2 characters.';
+        return undefined;
+      }
+      case 'num_employees': {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return 'Enter a valid number.';
+        if (num < 1) return 'Must be at least 1.';
+        if (num > 1000000) return 'Value is unrealistically high.';
+        return undefined;
+      }
+      case 'years_operating': {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return 'Enter a valid number.';
+        if (num < 0) return 'Must be ≥ 0.';
+        if (num > 200) return 'Value is unrealistically high.';
+        return undefined;
+      }
+      case 'monthly_fixed_costs': {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return 'Enter a valid number.';
+        if (num < 0) return 'Must be ≥ 0.';
+        return undefined;
+      }
+      default:
+        return undefined;
+    }
+  }
 
   function setField(key: keyof CreateBusinessData, value: string | number) {
     setForm((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
+    setErrors((prev) => ({ ...prev, [key]: validateField(key, value) }));
   }
 
   function validate(): boolean {
     const errs: Partial<Record<keyof CreateBusinessData, string>> = {};
-    if (!form.name.trim()) errs.name = 'Business name is required.';
-    if (!form.industry) errs.industry = 'Select an industry.';
-    if (!form.country.trim()) errs.country = 'Country is required.';
-    if (form.num_employees < 1) errs.num_employees = 'Must be at least 1.';
+
+    const fields: Array<keyof CreateBusinessData> = [
+      'name',
+      'industry',
+      'country',
+      'num_employees',
+      'years_operating',
+      'monthly_fixed_costs',
+    ];
+
+    for (const field of fields) {
+      const fieldError = validateField(field, form[field]);
+      if (fieldError) errs[field] = fieldError;
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -153,19 +224,25 @@ export default function NewBusinessPage() {
                 onChange={(e) =>
                   setField('years_operating', parseFloat(e.target.value) || 0)
                 }
+                error={errors.years_operating}
                 hint="Enter 0 if less than a year"
               />
             </div>
 
             <Input
               label="Monthly Fixed Costs ($)"
-              type="number"
+              type="text"
+              inputMode="decimal"
               min="0"
               step="0.01"
-              value={form.monthly_fixed_costs}
-              onChange={(e) =>
-                setField('monthly_fixed_costs', parseFloat(e.target.value) || 0)
-              }
+              value={fixedCostsDisplay}
+              onChange={(e) => {
+                setFixedCostsDisplay(e.target.value);
+                setField('monthly_fixed_costs', parseMoneyInput(e.target.value));
+              }}
+              onFocus={() => setFixedCostsDisplay(String(form.monthly_fixed_costs))}
+              onBlur={() => setFixedCostsDisplay(formatMoney(form.monthly_fixed_costs))}
+              error={errors.monthly_fixed_costs}
               hint="Recurring monthly costs (rent, salaries, etc.)"
             />
 
