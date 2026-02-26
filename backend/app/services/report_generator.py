@@ -1,0 +1,243 @@
+import os
+import uuid
+from datetime import datetime
+from typing import List
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    HRFlowable,
+)
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+
+from app.config import settings
+from app.models.risk_analysis import RiskAnalysis, RiskLevel
+from app.models.business import Business
+
+
+# Risk level color mapping
+RISK_COLORS = {
+    RiskLevel.safe: colors.HexColor("#2ecc71"),
+    RiskLevel.moderate_risk: colors.HexColor("#f39c12"),
+    RiskLevel.high_risk: colors.HexColor("#e74c3c"),
+}
+
+RISK_LABELS = {
+    RiskLevel.safe: "SAFE",
+    RiskLevel.moderate_risk: "MODERATE RISK",
+    RiskLevel.high_risk: "HIGH RISK",
+}
+
+
+class ReportGenerator:
+    """Generates a PDF financial health report using ReportLab."""
+
+    def generate(self, business: Business, analysis: RiskAnalysis) -> str:
+        """
+        Build a PDF report for the given business and risk analysis.
+
+        Returns the absolute file path of the generated PDF.
+        """
+        os.makedirs(settings.REPORTS_DIR, exist_ok=True)
+        filename = f"report_{business.id}_{uuid.uuid4().hex[:8]}.pdf"
+        filepath = os.path.join(settings.REPORTS_DIR, filename)
+
+        doc = SimpleDocTemplate(
+            filepath,
+            pagesize=A4,
+            rightMargin=2 * cm,
+            leftMargin=2 * cm,
+            topMargin=2 * cm,
+            bottomMargin=2 * cm,
+        )
+
+        story = []
+        styles = getSampleStyleSheet()
+        story += self._build_header(business, analysis, styles)
+        story.append(Spacer(1, 0.5 * cm))
+        story += self._build_metrics_table(analysis, styles)
+        story.append(Spacer(1, 0.5 * cm))
+        story += self._build_recommendations(analysis, styles)
+        story.append(Spacer(1, 0.5 * cm))
+        story += self._build_footer(styles)
+
+        doc.build(story)
+        return filepath
+
+    # ------------------------------------------------------------------
+    # Section builders
+    # ------------------------------------------------------------------
+
+    def _build_header(self, business: Business, analysis: RiskAnalysis, styles) -> list:
+        elements = []
+
+        title_style = ParagraphStyle(
+            "Title",
+            parent=styles["Title"],
+            fontSize=22,
+            spaceAfter=6,
+            alignment=TA_CENTER,
+        )
+        sub_style = ParagraphStyle(
+            "Sub",
+            parent=styles["Normal"],
+            fontSize=10,
+            textColor=colors.grey,
+            alignment=TA_CENTER,
+        )
+
+        elements.append(Paragraph("FirmShield Financial Health Report", title_style))
+        elements.append(
+            Paragraph(
+                f"{business.name} &nbsp;&nbsp;|&nbsp;&nbsp; "
+                f"Generated: {datetime.utcnow().strftime('%B %d, %Y')}",
+                sub_style,
+            )
+        )
+        elements.append(HRFlowable(width="100%", thickness=1, color=colors.lightgrey))
+        elements.append(Spacer(1, 0.3 * cm))
+
+        # Large risk score badge
+        risk_color = RISK_COLORS.get(analysis.risk_level, colors.grey)
+        risk_label = RISK_LABELS.get(analysis.risk_level, str(analysis.risk_level))
+
+        score_style = ParagraphStyle(
+            "Score",
+            parent=styles["Normal"],
+            fontSize=48,
+            textColor=risk_color,
+            alignment=TA_CENTER,
+            leading=54,
+        )
+        label_style = ParagraphStyle(
+            "Label",
+            parent=styles["Normal"],
+            fontSize=18,
+            textColor=risk_color,
+            alignment=TA_CENTER,
+            spaceAfter=4,
+        )
+
+        elements.append(Paragraph(f"{analysis.risk_score:.0f}<font size='18'>/100</font>", score_style))
+        elements.append(Paragraph(risk_label, label_style))
+
+        if analysis.risk_explanation:
+            explanation_style = ParagraphStyle(
+                "Explanation",
+                parent=styles["Normal"],
+                fontSize=10,
+                leading=14,
+                alignment=TA_CENTER,
+                textColor=colors.HexColor("#444444"),
+                spaceAfter=6,
+            )
+            elements.append(Paragraph(analysis.risk_explanation, explanation_style))
+
+        return elements
+
+    def _build_metrics_table(self, analysis: RiskAnalysis, styles) -> list:
+        elements = []
+
+        section_style = ParagraphStyle(
+            "Section",
+            parent=styles["Heading2"],
+            fontSize=13,
+            spaceAfter=6,
+        )
+        elements.append(Paragraph("Key Financial Metrics", section_style))
+
+        INFINITY_DISPLAY_THRESHOLD = 999  # Values >= this are shown as infinity
+
+        def fmt(value, suffix=""):
+            if value is None:
+                return "N/A"
+            if abs(value) >= INFINITY_DISPLAY_THRESHOLD:
+                return f"∞{suffix}"
+            return f"{value:.2f}{suffix}"
+
+        data = [
+            ["Metric", "Value", "Benchmark"],
+            ["Profit Margin", fmt(analysis.profit_margin, "%"), "> 10%"],
+            ["Burn Rate ($/mo)", fmt(analysis.burn_rate), "0 (profitable)"],
+            ["Cash Runway", fmt(analysis.cash_runway_months, " mo"), "> 6 months"],
+            ["Debt Ratio", fmt(analysis.debt_ratio), "< 0.5"],
+            ["Liquidity Ratio", fmt(analysis.liquidity_ratio), "> 2.0"],
+            ["Altman Z-Score", fmt(analysis.altman_z_score), "> 2.99 (safe)"],
+            ["Revenue Trend (MoM)", fmt(analysis.revenue_trend, "x"), "> 0"],
+            ["Expense Trend (MoM)", fmt(analysis.expense_trend, "x"), "< 0.1"],
+        ]
+
+        table = Table(data, colWidths=[7 * cm, 5 * cm, 5 * cm])
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 11),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f4f6f7")]),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                    ("FONTSIZE", (0, 1), (-1, -1), 10),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+        elements.append(table)
+        return elements
+
+    def _build_recommendations(self, analysis: RiskAnalysis, styles) -> list:
+        elements = []
+
+        section_style = ParagraphStyle(
+            "Section",
+            parent=styles["Heading2"],
+            fontSize=13,
+            spaceAfter=6,
+        )
+        bullet_style = ParagraphStyle(
+            "Bullet",
+            parent=styles["Normal"],
+            fontSize=10,
+            leading=14,
+            leftIndent=12,
+            spaceAfter=4,
+        )
+
+        elements.append(Paragraph("Actionable Recommendations", section_style))
+
+        recommendations: List[str] = analysis.recommendations or []
+        if not recommendations:
+            elements.append(Paragraph("No specific recommendations at this time.", bullet_style))
+        else:
+            for rec in recommendations:
+                elements.append(Paragraph(f"• {rec}", bullet_style))
+
+        return elements
+
+    def _build_footer(self, styles) -> list:
+        footer_style = ParagraphStyle(
+            "Footer",
+            parent=styles["Normal"],
+            fontSize=8,
+            textColor=colors.grey,
+            alignment=TA_CENTER,
+        )
+        return [
+            HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey),
+            Spacer(1, 0.2 * cm),
+            Paragraph(
+                "This report is generated by FirmShield and is intended for informational purposes only. "
+                "It does not constitute financial advice.",
+                footer_style,
+            ),
+        ]
