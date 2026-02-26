@@ -153,10 +153,12 @@ class ReportGenerator:
         )
         elements.append(Paragraph("Key Financial Metrics", section_style))
 
+        INFINITY_DISPLAY_THRESHOLD = 999  # Values >= this are shown as infinity
+
         def fmt(value, suffix=""):
             if value is None:
                 return "N/A"
-            if abs(value) >= 999:
+            if abs(value) >= INFINITY_DISPLAY_THRESHOLD:
                 return f"∞{suffix}"
             return f"{value:.2f}{suffix}"
 

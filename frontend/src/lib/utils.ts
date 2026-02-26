@@ -72,9 +72,12 @@ export function riskLabel(
   }
 }
 
+const SAFE_THRESHOLD = 30;
+const MODERATE_THRESHOLD = 60;
+
 export function scoreColor(score: number): string {
-  if (score <= 30) return '#10b981'; // emerald-500
-  if (score <= 60) return '#f59e0b'; // amber-500
+  if (score <= SAFE_THRESHOLD) return '#10b981'; // emerald-500
+  if (score <= MODERATE_THRESHOLD) return '#f59e0b'; // amber-500
   return '#ef4444'; // red-500
 }
 
