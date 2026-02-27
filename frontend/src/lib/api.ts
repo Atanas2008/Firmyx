@@ -89,6 +89,10 @@ export const financialApi = {
 export const analysisApi = {
   run: (businessId: string) =>
     apiClient.post<RiskAnalysis>(`/businesses/${businessId}/analyze`),
+  runAllMonths: (businessId: string) =>
+    apiClient.post<RiskAnalysis[]>(`/businesses/${businessId}/analyze/all-months`),
+  runCombined: (businessId: string) =>
+    apiClient.post<RiskAnalysis>(`/businesses/${businessId}/analyze/combined`),
   list: (businessId: string) =>
     apiClient.get<RiskAnalysis[]>(`/businesses/${businessId}/analysis`),
   get: (businessId: string, analysisId: string) =>
@@ -100,10 +104,16 @@ export const analysisApi = {
 // ─── Reports ─────────────────────────────────────────────────────────────────
 
 export const reportApi = {
-  generate: (businessId: string) =>
-    apiClient.post<Report>(`/businesses/${businessId}/reports`),
+  generate: (businessId: string, analysisId?: string) =>
+    apiClient.post<Report>(`/businesses/${businessId}/reports`, {
+      analysis_id: analysisId,
+    }),
   list: (businessId: string) =>
     apiClient.get<Report[]>(`/businesses/${businessId}/reports`),
+  download: (businessId: string, reportId: string) =>
+    apiClient.get(`/businesses/${businessId}/reports/${reportId}/download`, {
+      responseType: 'blob',
+    }),
   downloadUrl: (businessId: string, reportId: string) =>
     `${API_BASE}/businesses/${businessId}/reports/${reportId}/download`,
 };

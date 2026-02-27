@@ -16,6 +16,10 @@ class FinancialRecordCreate(BaseModel):
     cash_reserves: Optional[Decimal] = Decimal("0")
     taxes: Optional[Decimal] = Decimal("0")
     cost_of_goods_sold: Optional[Decimal] = Decimal("0")
+    total_assets: Optional[Decimal] = None
+    current_liabilities: Optional[Decimal] = None
+    ebit: Optional[Decimal] = None
+    retained_earnings: Optional[Decimal] = None
 
     @field_validator("period_month")
     @classmethod
@@ -45,6 +49,10 @@ class FinancialRecordRead(BaseModel):
     cash_reserves: Optional[Decimal] = None
     taxes: Optional[Decimal] = None
     cost_of_goods_sold: Optional[Decimal] = None
+    total_assets: Optional[Decimal] = None
+    current_liabilities: Optional[Decimal] = None
+    ebit: Optional[Decimal] = None
+    retained_earnings: Optional[Decimal] = None
     created_at: datetime
     updated_at: datetime
 
@@ -62,3 +70,7 @@ class FinancialRecordUpdate(BaseModel):
     cash_reserves: Optional[Decimal] = None
     taxes: Optional[Decimal] = None
     cost_of_goods_sold: Optional[Decimal] = None
+    total_assets: Optional[Decimal] = None
+    current_liabilities: Optional[Decimal] = None
+    ebit: Optional[Decimal] = None
+    retained_earnings: Optional[Decimal] = None

@@ -1,6 +1,11 @@
 from uuid import UUID
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel
+
+
+class ReportGenerateRequest(BaseModel):
+    analysis_id: Optional[UUID] = None
 
 
 class ReportRead(BaseModel):

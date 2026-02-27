@@ -27,6 +27,7 @@ export default function FinancialsPage() {
   const [business, setBusiness] = useState<Business | null>(null);
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [tab, setTab] = useState<Tab>('manual');
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -46,6 +47,16 @@ export default function FinancialsPage() {
             : b.period_month - a.period_month
         )
       );
+      if (rRes.data.length > 0) {
+        const sorted = [...rRes.data].sort((a, b) =>
+          a.period_year !== b.period_year
+            ? b.period_year - a.period_year
+            : b.period_month - a.period_month
+        );
+        setSelectedRecordId((prev) => prev ?? sorted[0].id);
+      } else {
+        setSelectedRecordId(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -72,6 +83,8 @@ export default function FinancialsPage() {
       setSaving(false);
     }
   }
+
+  const selectedRecord = records.find((r) => r.id === selectedRecordId) ?? records[0] ?? null;
 
   async function handleFileUpload(file: File) {
     setSaving(true);
@@ -207,9 +220,15 @@ export default function FinancialsPage() {
                 <p className="text-sm text-gray-500">No records yet</p>
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100 -mx-6 -mb-5">
+                <ul className="divide-y divide-gray-100 -mx-6 -mb-5 max-h-[420px] overflow-y-auto">
                 {records.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between px-6 py-3">
+                    <li
+                      key={r.id}
+                      className={`flex items-center justify-between px-6 py-3 cursor-pointer transition-colors ${
+                        selectedRecord?.id === r.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedRecordId(r.id)}
+                    >
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <div>
@@ -232,6 +251,21 @@ export default function FinancialsPage() {
               </ul>
             )}
           </Card>
+
+          {selectedRecord && (
+            <Card title="Selected Record Details" className="mt-6">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <p className="text-sm text-gray-700">Period: <span className="font-medium text-gray-900">{monthName(selectedRecord.period_month)} {selectedRecord.period_year}</span></p>
+                <p className="text-sm text-gray-700">Revenue: <span className="font-medium text-gray-900">{formatCurrency(selectedRecord.monthly_revenue)}</span></p>
+                <p className="text-sm text-gray-700">Expenses: <span className="font-medium text-gray-900">{formatCurrency(selectedRecord.monthly_expenses)}</span></p>
+                <p className="text-sm text-gray-700">Profit: <span className="font-medium text-gray-900">{formatCurrency(selectedRecord.monthly_revenue - selectedRecord.monthly_expenses)}</span></p>
+                <p className="text-sm text-gray-700">Debt: <span className="font-medium text-gray-900">{formatCurrency(selectedRecord.debt)}</span></p>
+                <p className="text-sm text-gray-700">Cash Reserves: <span className="font-medium text-gray-900">{formatCurrency(selectedRecord.cash_reserves)}</span></p>
+                <p className="text-sm text-gray-700">COGS: <span className="font-medium text-gray-900">{formatCurrency(selectedRecord.cost_of_goods_sold)}</span></p>
+                <p className="text-sm text-gray-700">Taxes: <span className="font-medium text-gray-900">{formatCurrency(selectedRecord.taxes)}</span></p>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>

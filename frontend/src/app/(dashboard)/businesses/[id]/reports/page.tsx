@@ -11,30 +11,45 @@ import {
   DollarSign,
   BarChart3,
 } from 'lucide-react';
-import { businessApi, reportApi } from '@/lib/api';
+import { analysisApi, businessApi, reportApi } from '@/lib/api';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { formatDate } from '@/lib/utils';
-import type { Business, Report } from '@/types';
+import { formatDate, monthName } from '@/lib/utils';
+import type { Business, Report, RiskAnalysis } from '@/types';
 
 export default function ReportsPage() {
   const { id } = useParams<{ id: string }>();
   const [business, setBusiness] = useState<Business | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
+  const [analyses, setAnalyses] = useState<RiskAnalysis[]>([]);
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   const loadData = useCallback(async () => {
     try {
-      const [bRes, rRes] = await Promise.all([
+      const [bRes, rRes, aRes] = await Promise.all([
         businessApi.get(id),
         reportApi.list(id),
+        analysisApi.list(id),
       ]);
       setBusiness(bRes.data);
+      const analysisData = [...aRes.data] as RiskAnalysis[];
+      const sortedAnalyses = [...analysisData].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setAnalyses(sortedAnalyses);
+      setSelectedAnalysisId((prev) => {
+        if (prev && sortedAnalyses.some((analysis) => analysis.id === prev)) {
+          return prev;
+        }
+        return sortedAnalyses[0]?.id ?? '';
+      });
       setReports(
         [...rRes.data].sort(
           (a, b) =>
@@ -55,7 +70,7 @@ export default function ReportsPage() {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      await reportApi.generate(id);
+      await reportApi.generate(id, selectedAnalysisId || undefined);
       setSuccessMsg('Report generated successfully!');
       await loadData();
     } catch (err: unknown) {
@@ -65,6 +80,30 @@ export default function ReportsPage() {
       setErrorMsg(msg);
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleDownload(reportId: string) {
+    setDownloadingReportId(reportId);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const response = await reportApi.download(id, reportId);
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `firmshield-report-${reportId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data
+          ?.detail ?? 'Failed to download report.';
+      setErrorMsg(msg);
+    } finally {
+      setDownloadingReportId(null);
     }
   }
 
@@ -81,10 +120,34 @@ export default function ReportsPage() {
           { label: 'Reports' },
         ]}
         actions={
-          <Button onClick={handleGenerate} loading={generating}>
-            <Plus className="h-4 w-4" />
-            Generate Report
-          </Button>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedAnalysisId}
+              onChange={(e) => setSelectedAnalysisId(e.target.value)}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={analyses.length === 0 || generating}
+            >
+              {analyses.length === 0 ? (
+                <option value="">No analyses available</option>
+              ) : (
+                analyses.map((analysis) => {
+                  const label =
+                    analysis.analysis_scope === 'combined'
+                      ? `Combined • ${formatDate(analysis.created_at)}`
+                      : `${monthName(analysis.period_month ?? 1)} ${analysis.period_year ?? ''} • ${formatDate(analysis.created_at)}`;
+                  return (
+                    <option key={analysis.id} value={analysis.id}>
+                      {label}
+                    </option>
+                  );
+                })
+              )}
+            </select>
+            <Button onClick={handleGenerate} loading={generating} disabled={analyses.length === 0 || !selectedAnalysisId}>
+              <Plus className="h-4 w-4" />
+              Generate Report
+            </Button>
+          </div>
         }
       />
 
@@ -130,9 +193,9 @@ export default function ReportsPage() {
               No reports yet
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Generate a report based on the latest risk analysis.
+              Select any available month analysis (or combined analysis) and generate a report.
             </p>
-            <Button className="mt-4" onClick={handleGenerate} loading={generating}>
+            <Button className="mt-4" onClick={handleGenerate} loading={generating} disabled={analyses.length === 0 || !selectedAnalysisId}>
               <Plus className="h-4 w-4" />
               Generate First Report
             </Button>
@@ -159,15 +222,15 @@ export default function ReportsPage() {
                     </p>
                   </div>
                 </div>
-                <a
-                  href={reportApi.downloadUrl(id, r.id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => handleDownload(r.id)}
+                  disabled={downloadingReportId === r.id}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Download
-                </a>
+                  {downloadingReportId === r.id ? 'Downloading...' : 'Download'}
+                </button>
               </li>
             ))}
           </ul>

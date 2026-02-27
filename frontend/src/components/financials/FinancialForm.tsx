@@ -10,6 +10,15 @@ interface FinancialFormProps {
   loading?: boolean;
 }
 
+type NumericFieldKey = Exclude<keyof CreateRecordData, 'period_month' | 'period_year'>;
+
+const OPTIONAL_ADVANCED_FIELDS: NumericFieldKey[] = [
+  'total_assets',
+  'current_liabilities',
+  'ebit',
+  'retained_earnings',
+];
+
 const MONTHS = [
   'January','February','March','April','May','June',
   'July','August','September','October','November','December',
@@ -31,6 +40,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
     cash_reserves: 0,
     taxes: 0,
     cost_of_goods_sold: 0,
+    total_assets: null,
+    current_liabilities: null,
+    ebit: null,
+    retained_earnings: null,
   });
   const [errors, setErrors] = useState<Partial<Record<keyof CreateRecordData, string>>>({});
   const [displayValues, setDisplayValues] = useState<
@@ -51,18 +64,33 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
     return Number.isNaN(parsed) ? 0 : parsed;
   }
 
-  function getMoneyDisplay(key: keyof CreateRecordData): string {
+  function getNumericValue(key: NumericFieldKey): number {
+    const value = form[key];
+    return value == null ? 0 : value;
+  }
+
+  function getMoneyDisplay(key: NumericFieldKey): string {
     const typingValue = displayValues[key];
     if (typingValue !== undefined) return typingValue;
-    return formatMoney(form[key]);
+    if (OPTIONAL_ADVANCED_FIELDS.includes(key) && form[key] == null) {
+      return '';
+    }
+    return formatMoney(getNumericValue(key));
   }
 
   function validateField(
     key: keyof CreateRecordData,
-    value: number,
+    value: number | null,
     draft: CreateRecordData
   ): string | undefined {
-    if (Number.isNaN(value)) return 'Please enter a valid number.';
+    if (value !== null && Number.isNaN(value)) return 'Please enter a valid number.';
+
+    if (value === null) {
+      if (OPTIONAL_ADVANCED_FIELDS.includes(key as NumericFieldKey)) {
+        return undefined;
+      }
+      return 'This field is required.';
+    }
 
     switch (key) {
       case 'period_month':
@@ -82,7 +110,12 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
       case 'cash_reserves':
       case 'taxes':
       case 'cost_of_goods_sold':
+      case 'total_assets':
+      case 'current_liabilities':
         return value < 0 ? 'Must be ≥ 0.' : undefined;
+      case 'ebit':
+      case 'retained_earnings':
+        return undefined;
       default:
         return undefined;
     }
@@ -99,8 +132,9 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
     });
   }
 
-  function setMoneyField(key: keyof CreateRecordData, value: string) {
-    const parsed = parseMoneyInput(value);
+  function setMoneyField(key: NumericFieldKey, value: string) {
+    const isOptionalAdvanced = OPTIONAL_ADVANCED_FIELDS.includes(key);
+    const parsed = value.trim() === '' && isOptionalAdvanced ? null : parseMoneyInput(value);
     setDisplayValues((prev) => ({ ...prev, [key]: value }));
 
     setForm((prev) => {
@@ -111,12 +145,20 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
     });
   }
 
-  function handleMoneyBlur(key: keyof CreateRecordData) {
-    setDisplayValues((prev) => ({ ...prev, [key]: formatMoney(form[key]) }));
+  function handleMoneyBlur(key: NumericFieldKey) {
+    if (OPTIONAL_ADVANCED_FIELDS.includes(key) && form[key] == null) {
+      setDisplayValues((prev) => ({ ...prev, [key]: '' }));
+      return;
+    }
+    setDisplayValues((prev) => ({ ...prev, [key]: formatMoney(getNumericValue(key)) }));
   }
 
-  function handleMoneyFocus(key: keyof CreateRecordData) {
-    setDisplayValues((prev) => ({ ...prev, [key]: String(form[key]) }));
+  function handleMoneyFocus(key: NumericFieldKey) {
+    if (OPTIONAL_ADVANCED_FIELDS.includes(key) && form[key] == null) {
+      setDisplayValues((prev) => ({ ...prev, [key]: '' }));
+      return;
+    }
+    setDisplayValues((prev) => ({ ...prev, [key]: String(getNumericValue(key)) }));
   }
 
   function validate(): boolean {
@@ -133,10 +175,14 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
       'cash_reserves',
       'taxes',
       'cost_of_goods_sold',
+      'total_assets',
+      'current_liabilities',
+      'ebit',
+      'retained_earnings',
     ];
 
     for (const field of fields) {
-      const fieldError = validateField(field, form[field], form);
+      const fieldError = validateField(field, form[field] ?? null, form);
       if (fieldError) errs[field] = fieldError;
     }
 
@@ -146,7 +192,7 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
 
   const warnings = useMemo(() => {
     const items: string[] = [];
-    const impliedAssets = form.monthly_revenue + form.cash_reserves;
+    const resolvedAssets = form.total_assets ?? (form.monthly_revenue + form.cash_reserves);
 
     if (form.monthly_revenue === 0 && form.monthly_expenses > 0) {
       items.push('Revenue is 0 while expenses are positive. Risk outputs may indicate severe stress.');
@@ -156,8 +202,8 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
       items.push('Expenses exceed revenue and cash reserves cover less than ~3 months of expenses.');
     }
 
-    if (impliedAssets > 0 && form.debt / impliedAssets > 2) {
-      items.push('Debt is more than 200% of implied assets (revenue + cash), which may drive a high-risk result.');
+    if (resolvedAssets > 0 && form.debt / resolvedAssets > 2) {
+      items.push('Debt is more than 200% of total assets, which may drive a high-risk result.');
     }
 
     if (form.cost_of_goods_sold > form.monthly_revenue && form.monthly_revenue > 0) {
@@ -170,7 +216,14 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-    await onSubmit(form);
+    const payload: CreateRecordData = {
+      ...form,
+      total_assets: form.total_assets ?? undefined,
+      current_liabilities: form.current_liabilities ?? undefined,
+      ebit: form.ebit ?? undefined,
+      retained_earnings: form.retained_earnings ?? undefined,
+    };
+    await onSubmit(payload);
   }
 
   return (
@@ -322,6 +375,56 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onBlur={() => handleMoneyBlur('cash_reserves')}
             error={errors.cash_reserves}
             hint="Cash on hand and in bank"
+          />
+          <Input
+            label="Total Assets ($)"
+            type="text"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={getMoneyDisplay('total_assets')}
+            onChange={(e) => setMoneyField('total_assets', e.target.value)}
+            onFocus={() => handleMoneyFocus('total_assets')}
+            onBlur={() => handleMoneyBlur('total_assets')}
+            error={errors.total_assets}
+            hint="Optional: improves debt ratio and Altman accuracy"
+          />
+          <Input
+            label="Current Liabilities ($)"
+            type="text"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={getMoneyDisplay('current_liabilities')}
+            onChange={(e) => setMoneyField('current_liabilities', e.target.value)}
+            onFocus={() => handleMoneyFocus('current_liabilities')}
+            onBlur={() => handleMoneyBlur('current_liabilities')}
+            error={errors.current_liabilities}
+            hint="Optional: used for working capital and liquidity"
+          />
+          <Input
+            label="EBIT ($)"
+            type="text"
+            inputMode="decimal"
+            step="0.01"
+            value={getMoneyDisplay('ebit')}
+            onChange={(e) => setMoneyField('ebit', e.target.value)}
+            onFocus={() => handleMoneyFocus('ebit')}
+            onBlur={() => handleMoneyBlur('ebit')}
+            error={errors.ebit}
+            hint="Optional: direct earnings before interest and taxes"
+          />
+          <Input
+            label="Retained Earnings ($)"
+            type="text"
+            inputMode="decimal"
+            step="0.01"
+            value={getMoneyDisplay('retained_earnings')}
+            onChange={(e) => setMoneyField('retained_earnings', e.target.value)}
+            onFocus={() => handleMoneyFocus('retained_earnings')}
+            onBlur={() => handleMoneyBlur('retained_earnings')}
+            error={errors.retained_earnings}
+            hint="Optional: cumulative retained profit"
           />
         </div>
       </div>

@@ -58,8 +58,10 @@ async def upload_records(
     """
     Upload a CSV or Excel file containing multiple financial records.
 
-    Expected columns: month, year, revenue, expenses, payroll, rent,
+    Required columns: month, year, revenue, expenses, payroll, rent,
     debt, cash_reserves, taxes, cogs
+
+    Optional columns: total_assets, current_liabilities, ebit, retained_earnings
 
     Returns the list of created records. Row-level validation errors
     are returned in the response body under the 'errors' key via a 422 response.

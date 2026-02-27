@@ -21,6 +21,10 @@ class FinancialRecord(Base):
     cash_reserves = Column(Numeric(15, 2), nullable=True, default=0)
     taxes = Column(Numeric(15, 2), nullable=True, default=0)
     cost_of_goods_sold = Column(Numeric(15, 2), nullable=True, default=0)
+    total_assets = Column(Numeric(15, 2), nullable=True)
+    current_liabilities = Column(Numeric(15, 2), nullable=True)
+    ebit = Column(Numeric(15, 2), nullable=True)
+    retained_earnings = Column(Numeric(15, 2), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

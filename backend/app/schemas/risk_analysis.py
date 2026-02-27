@@ -21,6 +21,10 @@ class RiskAnalysisRead(BaseModel):
     risk_level: RiskLevel
     recommendations: Optional[List[str]] = None
     risk_explanation: Optional[str] = None
+    calculation_sources: Optional[dict[str, str]] = None
+    analysis_scope: str
+    period_month: Optional[int] = None
+    period_year: Optional[int] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

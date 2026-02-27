@@ -20,6 +20,10 @@ COLUMN_MAP = {
     "cash_reserves": "cash_reserves",
     "taxes": "taxes",
     "cogs": "cost_of_goods_sold",
+    "total_assets": "total_assets",
+    "current_liabilities": "current_liabilities",
+    "ebit": "ebit",
+    "retained_earnings": "retained_earnings",
 }
 
 
@@ -82,6 +86,14 @@ class FileParser:
                     cash_reserves=self._safe_decimal(row.get("cash_reserves", 0), row_num, "cash_reserves"),
                     taxes=self._safe_decimal(row.get("taxes", 0), row_num, "taxes"),
                     cost_of_goods_sold=self._safe_decimal(row.get("cogs", 0), row_num, "cogs"),
+                    total_assets=self._safe_optional_decimal(row.get("total_assets"), row_num, "total_assets"),
+                    current_liabilities=self._safe_optional_decimal(
+                        row.get("current_liabilities"), row_num, "current_liabilities"
+                    ),
+                    ebit=self._safe_optional_decimal(row.get("ebit"), row_num, "ebit"),
+                    retained_earnings=self._safe_optional_decimal(
+                        row.get("retained_earnings"), row_num, "retained_earnings"
+                    ),
                 )
                 records.append(record)
             except HTTPException:
@@ -93,6 +105,17 @@ class FileParser:
 
     def _safe_decimal(self, value, row_num: int, field: str):
         """Convert a cell value to a decimal string, raising a clear error on failure."""
+        if pd.isna(value):
+            raise ValueError(f"Missing value for required field '{field}' in row {row_num}")
+        try:
+            return str(float(value))
+        except (TypeError, ValueError):
+            raise ValueError(f"Invalid value '{value}' for field '{field}' in row {row_num}")
+
+    def _safe_optional_decimal(self, value, row_num: int, field: str):
+        """Convert an optional cell value to decimal string or return None for empty cells."""
+        if value is None or pd.isna(value):
+            return None
         try:
             return str(float(value))
         except (TypeError, ValueError):

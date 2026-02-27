@@ -22,9 +22,23 @@ export default function AnalysisPage() {
   const [business, setBusiness] = useState<Business | null>(null);
   const [analyses, setAnalyses] = useState<RiskAnalysis[]>([]);
   const [financials, setFinancials] = useState<FinancialRecord[]>([]);
-  const [running, setRunning] = useState(false);
+  const [runningMode, setRunningMode] = useState<'latest' | 'all-months' | 'combined' | null>(null);
+  const [activeScope, setActiveScope] = useState<'monthly' | 'combined'>('monthly');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  function extractErrorMessage(err: unknown): string {
+    const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    if (detail && typeof detail === 'object') {
+      const message = (detail as { message?: string }).message;
+      if (message) return message;
+    }
+    return 'Failed to run analysis. Ensure financial records exist.';
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -50,23 +64,72 @@ export default function AnalysisPage() {
     loadData();
   }, [loadData]);
 
-  async function handleRunAnalysis() {
-    setRunning(true);
+  async function runLatestAnalysis() {
+    setRunningMode('latest');
     setErrorMsg('');
+    setSuccessMsg('');
     try {
       await analysisApi.run(id);
       await loadData();
+      setActiveScope('monthly');
+      setSuccessMsg('Latest monthly analysis completed successfully.');
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Failed to run analysis. Ensure financial records exist.';
-      setErrorMsg(msg);
+      setErrorMsg(extractErrorMessage(err));
     } finally {
-      setRunning(false);
+      setRunningMode(null);
     }
   }
 
-  const latest = analyses[0] ?? null;
+  async function runAllMonthsAnalysis() {
+    setRunningMode('all-months');
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const response = await analysisApi.runAllMonths(id);
+      await loadData();
+      setActiveScope('monthly');
+      setSuccessMsg(`Generated ${response.data.length} monthly analyses successfully.`);
+    } catch (err: unknown) {
+      setErrorMsg(extractErrorMessage(err));
+    } finally {
+      setRunningMode(null);
+    }
+  }
+
+  async function runCombinedAnalysis() {
+    setRunningMode('combined');
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      await analysisApi.runCombined(id);
+      await loadData();
+      setActiveScope('combined');
+      setSuccessMsg('Combined multi-month analysis completed successfully.');
+    } catch (err: unknown) {
+      setErrorMsg(extractErrorMessage(err));
+    } finally {
+      setRunningMode(null);
+    }
+  }
+
+  const monthlyAnalyses = analyses.filter((analysis) => analysis.analysis_scope === 'monthly');
+  const combinedAnalyses = analyses.filter((analysis) => analysis.analysis_scope === 'combined');
+  const latest = activeScope === 'combined' ? (combinedAnalyses[0] ?? null) : (monthlyAnalyses[0] ?? null);
+  const sourceLabels: Record<string, string> = {
+    total_assets: 'Total Assets',
+    current_liabilities: 'Current Liabilities',
+    ebit: 'EBIT',
+    retained_earnings: 'Retained Earnings',
+  };
+  const sourceDescriptions: Record<string, string> = {
+    provided: 'Provided input',
+    fallback_revenue_plus_cash: 'Estimated from Revenue + Cash Reserves',
+    fallback_monthly_expenses: 'Estimated from Monthly Expenses',
+    fallback_revenue_minus_expenses: 'Estimated from Revenue - Expenses',
+    fallback_revenue_minus_expenses_minus_cogs:
+      'Estimated from Revenue - Expenses - COGS',
+    unknown: 'Source unavailable',
+  };
 
   if (loading) return <LoadingSpinner fullPage />;
 
@@ -81,10 +144,34 @@ export default function AnalysisPage() {
           { label: 'Analysis' },
         ]}
         actions={
-          <Button onClick={handleRunAnalysis} loading={running}>
-            <Play className="h-4 w-4" />
-            Run Analysis
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={runLatestAnalysis}
+              loading={runningMode === 'latest'}
+              disabled={financials.length === 0 || runningMode !== null}
+            >
+              <Play className="h-4 w-4" />
+              Run Latest
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={runAllMonthsAnalysis}
+              loading={runningMode === 'all-months'}
+              disabled={financials.length === 0 || runningMode !== null}
+            >
+              <Play className="h-4 w-4" />
+              Run All Months
+            </Button>
+            <Button
+              onClick={runCombinedAnalysis}
+              loading={runningMode === 'combined'}
+              disabled={financials.length === 0 || runningMode !== null}
+            >
+              <Play className="h-4 w-4" />
+              Run Combined
+            </Button>
+          </div>
         }
       />
 
@@ -116,6 +203,36 @@ export default function AnalysisPage() {
           {errorMsg}
         </div>
       )}
+      {successMsg && (
+        <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
+          {successMsg}
+        </div>
+      )}
+
+      <div className="mb-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveScope('monthly')}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+            activeScope === 'monthly'
+              ? 'border-blue-600 bg-blue-50 text-blue-700'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Monthly ({monthlyAnalyses.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveScope('combined')}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+            activeScope === 'combined'
+              ? 'border-blue-600 bg-blue-50 text-blue-700'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Combined ({combinedAnalyses.length})
+        </button>
+      </div>
 
       {!latest ? (
         <Card>
@@ -127,7 +244,9 @@ export default function AnalysisPage() {
             <p className="mt-1 text-sm text-gray-500">
               {financials.length === 0
                 ? 'Add financial data first, then run an analysis.'
-                : 'Click "Run Analysis" to generate your risk assessment.'}
+                : activeScope === 'combined'
+                ? 'Click "Run Combined" to generate a multi-month aggregate analysis.'
+                : 'Click "Run Latest" or "Run All Months" to generate monthly analyses.'}
             </p>
             {financials.length === 0 && (
               <Link
@@ -158,13 +277,31 @@ export default function AnalysisPage() {
               <RevenueExpenseChart records={financials} />
             </Card>
             <Card title="Cash Runway Trend">
-              <RunwayChart analyses={analyses} />
+              <RunwayChart analyses={monthlyAnalyses} />
             </Card>
           </div>
 
           {/* Detailed metrics table */}
           <Card title="Detailed Metrics">
             <MetricsTable analysis={latest} />
+          </Card>
+
+          <Card title="Calculation Sources">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {Object.entries(sourceLabels).map(([key, label]) => {
+                const source = latest.calculation_sources?.[key] ?? 'unknown';
+                const isProvided = source === 'provided';
+                const sourceText = sourceDescriptions[source] ?? `Fallback (${source})`;
+                return (
+                  <div key={key} className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
+                    <p className={`mt-1 text-sm font-semibold ${isProvided ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      {sourceText}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </Card>
 
           {/* Recommendations */}

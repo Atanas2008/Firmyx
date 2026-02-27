@@ -29,6 +29,10 @@ export interface FinancialRecord {
   cash_reserves: number;
   taxes: number;
   cost_of_goods_sold: number;
+  total_assets?: number | null;
+  current_liabilities?: number | null;
+  ebit?: number | null;
+  retained_earnings?: number | null;
   created_at: string;
 }
 
@@ -48,6 +52,10 @@ export interface RiskAnalysis {
   risk_level: 'safe' | 'moderate_risk' | 'high_risk';
   recommendations: string[];
   risk_explanation: string;
+  calculation_sources?: Record<string, string>;
+  analysis_scope: 'monthly' | 'combined';
+  period_month?: number | null;
+  period_year?: number | null;
   created_at: string;
 }
 
@@ -93,6 +101,10 @@ export interface CreateRecordData {
   cash_reserves: number;
   taxes: number;
   cost_of_goods_sold: number;
+  total_assets?: number | null;
+  current_liabilities?: number | null;
+  ebit?: number | null;
+  retained_earnings?: number | null;
 }
 
 export interface ApiError {

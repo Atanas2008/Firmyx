@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import Column, Float, Text, DateTime, ForeignKey, Enum as SAEnum, JSON
+from sqlalchemy import Column, Float, Text, DateTime, ForeignKey, Enum as SAEnum, JSON, String, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -31,6 +31,10 @@ class RiskAnalysis(Base):
     risk_level = Column(SAEnum(RiskLevel), nullable=False)
     recommendations = Column(JSON, nullable=True)
     risk_explanation = Column(Text, nullable=True)
+    calculation_sources = Column(JSON, nullable=True)
+    analysis_scope = Column(String(20), nullable=False, default="monthly", server_default="monthly")
+    period_month = Column(Integer, nullable=True)
+    period_year = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     business = relationship("Business", back_populates="risk_analyses")

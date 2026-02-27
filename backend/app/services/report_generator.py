@@ -64,6 +64,8 @@ class ReportGenerator:
         story.append(Spacer(1, 0.5 * cm))
         story += self._build_metrics_table(analysis, styles)
         story.append(Spacer(1, 0.5 * cm))
+        story += self._build_calculation_sources(analysis, styles)
+        story.append(Spacer(1, 0.5 * cm))
         story += self._build_recommendations(analysis, styles)
         story.append(Spacer(1, 0.5 * cm))
         story += self._build_footer(styles)
@@ -193,6 +195,61 @@ class ReportGenerator:
             )
         )
         elements.append(table)
+        return elements
+
+    def _build_calculation_sources(self, analysis: RiskAnalysis, styles) -> list:
+        elements = []
+
+        section_style = ParagraphStyle(
+            "Section",
+            parent=styles["Heading2"],
+            fontSize=13,
+            spaceAfter=6,
+        )
+        elements.append(Paragraph("Calculation Sources", section_style))
+
+        raw_sources = analysis.calculation_sources or {}
+
+        source_descriptions = {
+            "provided": "Provided input",
+            "fallback_revenue_plus_cash": "Estimated from Revenue + Cash Reserves",
+            "fallback_monthly_expenses": "Estimated from Monthly Expenses",
+            "fallback_revenue_minus_expenses": "Estimated from Revenue - Expenses",
+            "fallback_revenue_minus_expenses_minus_cogs": "Estimated from Revenue - Expenses - COGS",
+            "unknown": "Source unavailable",
+        }
+
+        def source_text(key: str) -> str:
+            source = raw_sources.get(key, "unknown")
+            return source_descriptions.get(source, f"Fallback ({source})")
+
+        source_rows = [
+            ["Input", "Source"],
+            ["Total Assets", source_text("total_assets")],
+            ["Current Liabilities", source_text("current_liabilities")],
+            ["EBIT", source_text("ebit")],
+            ["Retained Earnings", source_text("retained_earnings")],
+        ]
+
+        source_table = Table(source_rows, colWidths=[7 * cm, 10 * cm])
+        source_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#34495e")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 10),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9f9")]),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                    ("FONTSIZE", (0, 1), (-1, -1), 9),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
+        elements.append(source_table)
         return elements
 
     def _build_recommendations(self, analysis: RiskAnalysis, styles) -> list:

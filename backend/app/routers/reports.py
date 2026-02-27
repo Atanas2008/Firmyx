@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.report import ReportRead
+from app.schemas.report import ReportRead, ReportGenerateRequest
 from app.repositories.business_repository import BusinessRepository
 from app.repositories.risk_analysis_repository import RiskAnalysisRepository
 from app.services.auth_service import get_current_user
@@ -29,6 +29,7 @@ def _assert_business_owner(business_id: UUID, current_user: User, db: Session):
 @router.post("/{business_id}/reports", response_model=ReportRead, status_code=status.HTTP_201_CREATED)
 def generate_report(
     business_id: UUID,
+    payload: ReportGenerateRequest | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -46,13 +47,22 @@ def generate_report(
             detail="No risk analysis found. Run an analysis before generating a report.",
         )
 
-    latest_analysis = analyses[0]
+    selected_analysis = analyses[0]
+    if payload and payload.analysis_id:
+        found = analysis_repo.get_by_id(payload.analysis_id)
+        if not found or found.business_id != business_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Selected analysis was not found for this business.",
+            )
+        selected_analysis = found
+
     generator = ReportGenerator()
-    filepath = generator.generate(business, latest_analysis)
+    filepath = generator.generate(business, selected_analysis)
 
     report_data = {
         "business_id": business_id,
-        "risk_analysis_id": latest_analysis.id,
+        "risk_analysis_id": selected_analysis.id,
         "report_type": "pdf",
         "file_path": filepath,
     }

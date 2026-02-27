@@ -15,6 +15,7 @@ class AnalysisResult:
     altman_z_score: float
     risk_score: float
     risk_level: str
+    calculation_sources: dict[str, str]
 
 
 class FinancialAnalysisEngine:
@@ -27,6 +28,25 @@ class FinancialAnalysisEngine:
         cash = float(record.cash_reserves or 0)
         debt = float(record.debt or 0)
         cogs = float(record.cost_of_goods_sold or 0)
+        total_assets = float(record.total_assets) if record.total_assets is not None else None
+        current_liabilities = (
+            float(record.current_liabilities) if record.current_liabilities is not None else None
+        )
+        ebit = float(record.ebit) if record.ebit is not None else None
+        retained_earnings = (
+            float(record.retained_earnings) if record.retained_earnings is not None else None
+        )
+
+        sources = {
+            "total_assets": "provided" if total_assets is not None and total_assets > 0 else "fallback_revenue_plus_cash",
+            "current_liabilities": "provided"
+            if current_liabilities is not None and current_liabilities >= 0
+            else "fallback_monthly_expenses",
+            "ebit": "provided" if ebit is not None else "fallback_revenue_minus_expenses",
+            "retained_earnings": "provided"
+            if retained_earnings is not None
+            else "fallback_revenue_minus_expenses_minus_cogs",
+        }
 
         profit_margin = self._profit_margin(revenue, expenses)
         burn_rate = self._burn_rate(revenue, expenses)
@@ -37,9 +57,19 @@ class FinancialAnalysisEngine:
         expense_trend = self._trend(
             float(previous.monthly_expenses or 0) if previous else expenses, expenses
         )
-        debt_ratio = self._debt_ratio(debt, revenue, cash)
-        liquidity_ratio = self._liquidity_ratio(cash, expenses)
-        z_score = self._altman_z_score(revenue, expenses, cash, debt, cogs)
+        debt_ratio = self._debt_ratio(debt, total_assets, revenue, cash)
+        liquidity_ratio = self._liquidity_ratio(cash, current_liabilities, expenses)
+        z_score = self._altman_z_score(
+            revenue,
+            expenses,
+            cash,
+            debt,
+            cogs,
+            total_assets,
+            current_liabilities,
+            ebit,
+            retained_earnings,
+        )
         risk_score, risk_level = self._risk_classification(
             z_score, burn_rate, cash_runway, profit_margin
         )
@@ -55,6 +85,7 @@ class FinancialAnalysisEngine:
             altman_z_score=round(z_score, 4),
             risk_score=round(risk_score, 2),
             risk_level=risk_level,
+            calculation_sources=sources,
         )
 
     # ------------------------------------------------------------------
@@ -110,28 +141,44 @@ class FinancialAnalysisEngine:
             return 0.0
         return (current - previous) / previous
 
-    def _debt_ratio(self, debt: float, revenue: float, cash: float) -> float:
+    def _debt_ratio(
+        self,
+        debt: float,
+        total_assets: Optional[float],
+        revenue: float,
+        cash: float,
+    ) -> float:
         """
         Debt Ratio = Total Debt / Total Assets.
 
         Total assets are approximated as revenue + cash_reserves.
         A ratio above 0.7 is considered dangerous. Returns 0 when assets = 0.
         """
-        total_assets = revenue + cash
-        if total_assets == 0:
+        resolved_assets = total_assets if total_assets is not None and total_assets > 0 else revenue + cash
+        if resolved_assets == 0:
             return 0.0
-        return debt / total_assets
+        return debt / resolved_assets
 
-    def _liquidity_ratio(self, cash_reserves: float, monthly_expenses: float) -> float:
+    def _liquidity_ratio(
+        self,
+        cash_reserves: float,
+        current_liabilities: Optional[float],
+        monthly_expenses: float,
+    ) -> float:
         """
         Liquidity Ratio = Cash Reserves / Monthly Expenses.
 
         Indicates how many months of expenses can be covered by current cash.
         A ratio below 1.0 signals a critical liquidity situation.
         """
-        if monthly_expenses == 0:
+        denominator = (
+            current_liabilities
+            if current_liabilities is not None and current_liabilities > 0
+            else monthly_expenses
+        )
+        if denominator == 0:
             return 999.0
-        return cash_reserves / monthly_expenses
+        return cash_reserves / denominator
 
     def _altman_z_score(
         self,
@@ -140,6 +187,10 @@ class FinancialAnalysisEngine:
         cash: float,
         debt: float,
         cogs: float,
+        total_assets: Optional[float],
+        current_liabilities: Optional[float],
+        ebit: Optional[float],
+        retained_earnings: Optional[float],
     ) -> float:
         """
         Altman Z-Score (adapted for private/small business):
@@ -162,20 +213,31 @@ class FinancialAnalysisEngine:
           1.81–2.99 → Grey zone
           Z ≤ 1.81  → Distress zone
         """
-        total_assets = revenue + cash
-        if total_assets == 0:
+        resolved_assets = total_assets if total_assets is not None and total_assets > 0 else revenue + cash
+        if resolved_assets == 0:
             return 0.0
 
-        working_capital = cash - expenses
-        retained_earnings = revenue - expenses - cogs
-        ebit = revenue - expenses
-        total_liabilities = debt + expenses if (debt + expenses) > 0 else 1.0
+        resolved_current_liabilities = (
+            current_liabilities
+            if current_liabilities is not None and current_liabilities >= 0
+            else expenses
+        )
+        resolved_retained_earnings = (
+            retained_earnings
+            if retained_earnings is not None
+            else revenue - expenses - cogs
+        )
+        resolved_ebit = ebit if ebit is not None else revenue - expenses
 
-        x1 = working_capital / total_assets
-        x2 = retained_earnings / total_assets
-        x3 = ebit / total_assets
+        working_capital = cash - resolved_current_liabilities
+        total_liabilities_base = debt + resolved_current_liabilities
+        total_liabilities = total_liabilities_base if total_liabilities_base > 0 else 1.0
+
+        x1 = working_capital / resolved_assets
+        x2 = resolved_retained_earnings / resolved_assets
+        x3 = resolved_ebit / resolved_assets
         x4 = cash / total_liabilities
-        x5 = revenue / total_assets
+        x5 = revenue / resolved_assets
 
         return 1.2 * x1 + 1.4 * x2 + 3.3 * x3 + 0.6 * x4 + 1.0 * x5
 
