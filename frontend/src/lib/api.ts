@@ -73,6 +73,8 @@ export const financialApi = {
     apiClient.get<FinancialRecord[]>(`/businesses/${businessId}/records`),
   create: (businessId: string, data: CreateRecordData) =>
     apiClient.post<FinancialRecord>(`/businesses/${businessId}/records`, data),
+  delete: (businessId: string, recordId: string) =>
+    apiClient.delete(`/businesses/${businessId}/records/${recordId}`),
   upload: (businessId: string, file: File) => {
     const form = new FormData();
     form.append('file', file);

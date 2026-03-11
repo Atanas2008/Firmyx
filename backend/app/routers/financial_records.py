@@ -48,6 +48,24 @@ def create_record(
     return FinancialRecordRepository(db).create(business_id, data)
 
 
+@router.delete("/{business_id}/records/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_record(
+    business_id: UUID,
+    record_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a single financial record by ID."""
+    _assert_business_owner(business_id, current_user, db)
+    repo = FinancialRecordRepository(db)
+    record = repo.get_by_id(record_id)
+    if not record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found.")
+    if record.business_id != business_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+    repo.delete(record)
+
+
 @router.post("/{business_id}/records/upload", response_model=List[FinancialRecordRead], status_code=status.HTTP_201_CREATED)
 async def upload_records(
     business_id: UUID,
@@ -56,12 +74,20 @@ async def upload_records(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Upload a CSV or Excel file containing multiple financial records.
+    Upload a CSV or Excel file containing financial records.
 
+    **Monthly format** (one row per month):
     Required columns: month, year, revenue, expenses, payroll, rent,
     debt, cash_reserves, taxes, cogs
 
-    Optional columns: total_assets, current_liabilities, ebit, retained_earnings
+    **Annual format** (one row per year — omit the `month` column):
+    Required columns: year, revenue, expenses, payroll, rent,
+    debt, cash_reserves, taxes, cogs
+    Annual totals are automatically distributed across 12 monthly records.
+    Flow items (revenue, expenses, etc.) are divided by 12; balance-sheet
+    items (debt, cash_reserves, etc.) are copied to every month as-is.
+
+    Optional columns (both formats): total_assets, current_liabilities, ebit, retained_earnings
 
     Returns the list of created records. Row-level validation errors
     are returned in the response body under the 'errors' key via a 422 response.

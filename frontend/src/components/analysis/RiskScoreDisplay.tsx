@@ -9,9 +9,7 @@ interface RiskScoreDisplayProps {
 
 export function RiskScoreDisplay({ analysis }: RiskScoreDisplayProps) {
   const isRunwayNotApplicable =
-    analysis.cash_runway_months === null ||
-    analysis.burn_rate <= 0 ||
-    analysis.cash_runway_months >= 999;
+    analysis.cash_runway_months === null;
 
   return (
     <div className="flex flex-col items-center gap-4 py-4 sm:flex-row sm:items-start sm:gap-8">
@@ -51,6 +49,7 @@ export function RiskScoreDisplay({ analysis }: RiskScoreDisplayProps) {
                 ? 'N/A'
                 : `${analysis.cash_runway_months!.toFixed(1)} mo`}
             </p>
+            <p className="text-xs text-gray-400">at current expenses</p>
           </div>
           <div className="text-center rounded-lg border border-gray-100 p-3">
             <p className="text-xs text-gray-400">Profit Margin</p>

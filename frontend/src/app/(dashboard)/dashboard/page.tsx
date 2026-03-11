@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { RiskIndicator } from '@/components/dashboard/RiskIndicator';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { formatDate } from '@/lib/utils';
 import type { Business, RiskAnalysis } from '@/types';
 
 export default function DashboardPage() {
@@ -169,6 +170,11 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
+                {analysis && (
+                  <p className="mt-2 text-xs text-gray-400">
+                    Last analysis run: {formatDate(analysis.created_at)}
+                  </p>
+                )}
               </Link>
             );
           })}

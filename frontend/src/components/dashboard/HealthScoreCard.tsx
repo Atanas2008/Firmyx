@@ -1,6 +1,6 @@
 'use client';
 
-import { scoreColor, riskLabel } from '@/lib/utils';
+import { scoreColor, scoreTierLabel } from '@/lib/utils';
 
 interface HealthScoreCardProps {
   score: number;
@@ -62,7 +62,7 @@ export function HealthScoreCard({
         className="text-base font-semibold"
         style={{ color }}
       >
-        {riskLabel(riskLevel)}
+        {scoreTierLabel(score)}
       </span>
     </div>
   );

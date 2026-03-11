@@ -34,31 +34,37 @@ class AdvisorService:
                 )
 
         # Debt ratio
-        if result.debt_ratio > 0.7:
+        if result.debt_ratio > 0.6:
             recommendations.append(
-                "Debt ratio is dangerously high (above 70%). Prioritize debt refinancing, negotiate "
+                "Debt ratio is dangerously high (above 60%). Prioritize debt refinancing, negotiate "
                 "extended repayment terms, or seek equity to reduce leverage."
             )
-        elif result.debt_ratio > 0.5:
+        elif result.debt_ratio > 0.3:
             recommendations.append(
-                "Debt ratio is elevated. Avoid taking on additional debt and create a structured "
-                "repayment plan to bring the ratio below 50%."
+                "Debt ratio is elevated (above 30%). Avoid taking on additional debt and create a structured "
+                "repayment plan to bring the ratio below 30%."
             )
 
         # Liquidity ratio
         if result.liquidity_ratio < 1.0:
             recommendations.append(
-                "Liquidity is critical — cash reserves do not cover one month of expenses. "
-                "Build a cash buffer of at least 3 months' worth of operating expenses."
+                "Liquidity is critical — current assets do not cover current liabilities. "
+                "Improve working capital by accelerating receivables collection, reducing inventory, "
+                "and building a cash buffer of at least 3 months of operating expenses."
+            )
+        elif result.liquidity_ratio < 1.2:
+            recommendations.append(
+                "Liquidity ratio is in the watch zone (below 1.2). Work toward a ratio above 1.5 "
+                "by extending payables where possible and reducing short-term obligations."
             )
         elif result.liquidity_ratio < 2.0:
             recommendations.append(
-                "Cash reserves cover less than 2 months of expenses. Work toward maintaining "
-                "at least 3 months of operating expenses in reserve."
+                "Liquidity ratio is healthy but could be stronger. Target a ratio above 2.0 "
+                "to provide a comfortable buffer against unexpected short-term obligations."
             )
 
         # Expense trend (growing faster than revenue)
-        if result.expense_trend > 0.1:
+        if result.expense_trend is not None and result.expense_trend > 0.1:
             recommendations.append(
                 "Expenses are growing faster than 10% month-over-month. Review and cut "
                 "discretionary spending, renegotiate supplier contracts, and track cost drivers weekly."
@@ -72,10 +78,25 @@ class AdvisorService:
             )
 
         # Revenue trend negative
-        if result.revenue_trend < -0.05:
+        if result.revenue_trend is not None and result.revenue_trend < -0.05:
             recommendations.append(
                 "Revenue is declining. Analyze your customer churn rate, re-evaluate your pricing "
                 "strategy, and invest in targeted sales and marketing efforts."
+            )
+
+        # Strong liquidity — positive opportunity
+        if result.liquidity_ratio > 2:
+            recommendations.append(
+                f"Liquidity levels are strong (ratio: {result.liquidity_ratio:.2f}). "
+                "Excess cash could be strategically reinvested into growth initiatives or "
+                "used to build a long-term reserve fund."
+            )
+
+        # Low leverage — positive opportunity
+        if result.debt_ratio < 0.3:
+            recommendations.append(
+                f"Low leverage (debt ratio: {result.debt_ratio * 100:.1f}%) provides room for "
+                "strategic financing if expansion capital is needed."
             )
 
         # Ensure at least 3 recommendations
@@ -124,11 +145,11 @@ class AdvisorService:
             drivers.append(f"an Altman Z-Score of {result.altman_z_score:.2f} (distress zone)")
         elif result.altman_z_score <= 2.99:
             drivers.append(f"an Altman Z-Score of {result.altman_z_score:.2f} (grey zone)")
-        if result.burn_rate > 0 and result.cash_runway_months is not None and result.cash_runway_months < 6:
+        if result.cash_runway_months is not None and result.cash_runway_months < 6:
             drivers.append(f"a cash runway of only {result.cash_runway_months:.1f} months")
         if result.profit_margin < 10:
             drivers.append(f"a profit margin of {result.profit_margin:.1f}%")
-        if result.debt_ratio > 0.5:
+        if result.debt_ratio > 0.6:
             drivers.append(f"a high debt ratio of {result.debt_ratio:.2f}")
         if result.liquidity_ratio < 2.0:
             drivers.append(f"a low liquidity ratio of {result.liquidity_ratio:.2f}")

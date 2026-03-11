@@ -10,6 +10,7 @@ import {
   Building2,
   Plus,
   Calendar,
+  Trash2,
 } from 'lucide-react';
 import { businessApi, financialApi } from '@/lib/api';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -30,8 +31,30 @@ export default function FinancialsPage() {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  function extractErrorMessage(
+    err: unknown,
+    fallback: string
+  ): string {
+    const detail = (err as { response?: { data?: { detail?: unknown } } })
+      ?.response?.data?.detail;
+
+    if (typeof detail === 'string') {
+      return detail;
+    }
+
+    if (detail && typeof detail === 'object') {
+      const message = (detail as { message?: unknown }).message;
+      if (typeof message === 'string' && message.trim().length > 0) {
+        return message;
+      }
+    }
+
+    return fallback;
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -66,25 +89,39 @@ export default function FinancialsPage() {
     loadData();
   }, [loadData]);
 
+  async function handleDelete(recordId: string) {
+    if (!window.confirm('Delete this financial record? This cannot be undone.')) return;
+    setDeletingId(recordId);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      await financialApi.delete(id, recordId);
+      setSuccessMsg('Record deleted successfully.');
+      if (selectedRecordId === recordId) setSelectedRecordId(null);
+      await loadData();
+    } catch {
+      setErrorMsg('Failed to delete record.');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  const selectedRecord = records.find((r) => r.id === selectedRecordId) ?? records[0] ?? null;
+
   async function handleManualSubmit(data: CreateRecordData) {
     setSaving(true);
     setErrorMsg('');
     setSuccessMsg('');
     try {
       await financialApi.create(id, data);
-      setSuccessMsg('Financial record saved successfully!');
+      setSuccessMsg('Financial record saved successfully! Run a new analysis on the Analysis tab to update risk metrics.');
       await loadData();
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Failed to save record.';
-      setErrorMsg(msg);
+      setErrorMsg(extractErrorMessage(err, 'Failed to save record.'));
     } finally {
       setSaving(false);
     }
   }
-
-  const selectedRecord = records.find((r) => r.id === selectedRecordId) ?? records[0] ?? null;
 
   async function handleFileUpload(file: File) {
     setSaving(true);
@@ -92,13 +129,10 @@ export default function FinancialsPage() {
     setSuccessMsg('');
     try {
       await financialApi.upload(id, file);
-      setSuccessMsg('File uploaded and processed successfully!');
+      setSuccessMsg('File uploaded and processed successfully! Navigate to the Analysis tab and run a new analysis to update all risk metrics.');
       await loadData();
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Failed to process file.';
-      setErrorMsg(msg);
+      setErrorMsg(extractErrorMessage(err, 'Failed to process file.'));
     } finally {
       setSaving(false);
     }
@@ -186,16 +220,27 @@ export default function FinancialsPage() {
             ) : (
               <div>
                 <p className="mb-4 text-sm text-gray-600">
-                  Upload a CSV or Excel file with your financial data. Download
-                  a template to get started.
+                  Upload a CSV or Excel file with your financial data.
+                  Choose <span className="font-medium">monthly format</span> (one
+                  row per month, requires a <code className="text-xs bg-gray-100 px-1 rounded">month</code> column)
+                  or <span className="font-medium">annual format</span> (one row
+                  per year — annual totals are automatically split into 12 monthly
+                  records).
                 </p>
-                <div className="mb-4">
+                <div className="mb-4 flex flex-wrap gap-4">
                   <a
                     href="/template.csv"
                     download
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >
-                    Download CSV template
+                    ↓ Monthly template (CSV)
+                  </a>
+                  <a
+                    href="/template_annual.csv"
+                    download
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    ↓ Annual template (CSV)
                   </a>
                 </div>
                 <FileUpload onUpload={handleFileUpload} loading={saving} />
@@ -240,11 +285,26 @@ export default function FinancialsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-700">
-                        {formatCurrency(r.monthly_revenue - r.monthly_expenses)}
-                      </p>
-                      <p className="text-xs text-gray-400">profit</p>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-700">
+                          {formatCurrency(r.monthly_revenue - r.monthly_expenses)}
+                        </p>
+                        <p className="text-xs text-gray-400">profit</p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={deletingId === r.id}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 transition-colors"
+                        title="Delete record"
+                      >
+                        {deletingId === r.id ? (
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-400 border-t-transparent" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </button>
                     </div>
                   </li>
                 ))}

@@ -17,6 +17,8 @@ class RiskAnalysisRead(BaseModel):
     debt_ratio: Optional[float] = None
     liquidity_ratio: Optional[float] = None
     altman_z_score: Optional[float] = None
+    financial_health_score: Optional[float] = None
+    bankruptcy_probability: Optional[float] = None
     risk_score: float
     risk_level: RiskLevel
     recommendations: Optional[List[str]] = None
@@ -25,6 +27,7 @@ class RiskAnalysisRead(BaseModel):
     analysis_scope: str
     period_month: Optional[int] = None
     period_year: Optional[int] = None
+    industry_model_applied: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

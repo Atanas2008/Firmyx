@@ -27,6 +27,8 @@ class RiskAnalysis(Base):
     debt_ratio = Column(Float, nullable=True)
     liquidity_ratio = Column(Float, nullable=True)
     altman_z_score = Column(Float, nullable=True)
+    financial_health_score = Column(Float, nullable=True)
+    bankruptcy_probability = Column(Float, nullable=True)
     risk_score = Column(Float, nullable=False)
     risk_level = Column(SAEnum(RiskLevel), nullable=False)
     recommendations = Column(JSON, nullable=True)
@@ -35,6 +37,7 @@ class RiskAnalysis(Base):
     analysis_scope = Column(String(20), nullable=False, default="monthly", server_default="monthly")
     period_month = Column(Integer, nullable=True)
     period_year = Column(Integer, nullable=True)
+    industry_model_applied = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     business = relationship("Business", back_populates="risk_analyses")

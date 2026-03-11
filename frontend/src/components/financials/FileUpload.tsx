@@ -113,6 +113,13 @@ export function FileUpload({
             <p className="mt-1 text-xs text-gray-400">
               Supports CSV, XLSX, XLS files
             </p>
+            <p className="mt-2 text-xs text-gray-400">
+              Monthly format: one row per month (requires a{' '}
+              <span className="font-medium">month</span> column).
+              <br />
+              Annual format: one row per year — annual totals are split
+              into 12 monthly records automatically.
+            </p>
           </>
         )}
       </div>

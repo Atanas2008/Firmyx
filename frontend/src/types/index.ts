@@ -43,11 +43,13 @@ export interface RiskAnalysis {
   profit_margin: number;
   burn_rate: number;
   cash_runway_months: number | null;
-  revenue_trend: number;
-  expense_trend: number;
+  revenue_trend: number | null;
+  expense_trend: number | null;
   debt_ratio: number;
   liquidity_ratio: number;
   altman_z_score: number;
+  financial_health_score: number | null;
+  bankruptcy_probability: number | null;
   risk_score: number;
   risk_level: 'safe' | 'moderate_risk' | 'high_risk';
   recommendations: string[];
@@ -56,6 +58,7 @@ export interface RiskAnalysis {
   analysis_scope: 'monthly' | 'combined';
   period_month?: number | null;
   period_year?: number | null;
+  industry_model_applied?: string | null;
   created_at: string;
 }
 

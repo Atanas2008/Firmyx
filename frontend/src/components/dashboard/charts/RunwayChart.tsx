@@ -19,11 +19,7 @@ interface RunwayChartProps {
 
 export function RunwayChart({ analyses }: RunwayChartProps) {
   if (!analyses || analyses.length === 0) {
-    return (
-      <div className="flex h-48 items-center justify-center text-sm text-gray-400">
-        No analysis data available
-      </div>
-    );
+    return null;
   }
 
   const data = [...analyses]
@@ -34,13 +30,14 @@ export function RunwayChart({ analyses }: RunwayChartProps) {
     .map((a) => ({
       name: formatDate(a.created_at),
       Runway:
-        a.cash_runway_months === null ||
-        a.burn_rate <= 0 ||
-        a.cash_runway_months >= 999
+        a.cash_runway_months === null || a.cash_runway_months >= 999
           ? null
           : parseFloat(a.cash_runway_months.toFixed(1)),
       Score: a.risk_score,
     }));
+
+  const hasRunwayData = data.some((d) => d.Runway !== null);
+  if (!hasRunwayData) return null;
 
   return (
     <ResponsiveContainer width="100%" height={220}>

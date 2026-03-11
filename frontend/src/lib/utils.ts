@@ -73,12 +73,24 @@ export function riskLabel(
 }
 
 const SAFE_THRESHOLD = 30;
-const MODERATE_THRESHOLD = 60;
+const MODERATE_THRESHOLD = 50;
 
 export function scoreColor(score: number): string {
-  if (score <= SAFE_THRESHOLD) return '#10b981'; // emerald-500
-  if (score <= MODERATE_THRESHOLD) return '#f59e0b'; // amber-500
-  return '#ef4444'; // red-500
+  if (score <= 30) return '#10b981'; // emerald — Safe
+  if (score <= 50) return '#f59e0b'; // amber   — Moderate Risk
+  if (score <= 70) return '#f97316'; // orange  — High Risk
+  return '#ef4444';                  // red     — Critical Risk
+}
+
+/**
+ * Derives a human-readable 4-tier risk label directly from the numeric risk score.
+ * Matches the FinancialHealthCard inverse tiers (health_score = 100 - risk_score).
+ */
+export function scoreTierLabel(score: number): string {
+  if (score <= 30) return 'Safe';
+  if (score <= 50) return 'Moderate Risk';
+  if (score <= 70) return 'High Risk';
+  return 'Critical Risk';
 }
 
 export function formatDate(dateString: string): string {

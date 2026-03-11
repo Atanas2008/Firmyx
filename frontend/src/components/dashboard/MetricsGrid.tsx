@@ -1,6 +1,7 @@
 import {
   TrendingUp,
   TrendingDown,
+  Minus,
   Flame,
   Clock,
   DollarSign,
@@ -24,8 +25,16 @@ interface MetricItem {
 export function MetricsGrid({ analysis }: MetricsGridProps) {
   const isRunwayNotApplicable =
     analysis.cash_runway_months === null ||
-    analysis.burn_rate <= 0 ||
     analysis.cash_runway_months >= 999;
+
+  const revTrendIcon =
+    analysis.revenue_trend === null
+      ? <Minus className="h-5 w-5" />
+      : analysis.revenue_trend > 0.005
+      ? <TrendingUp className="h-5 w-5" />
+      : analysis.revenue_trend < -0.005
+      ? <TrendingDown className="h-5 w-5" />
+      : <Minus className="h-5 w-5" />;
 
   const metrics: MetricItem[] = [
     {
@@ -44,7 +53,7 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
       label: 'Burn Rate',
       value: formatCurrency(analysis.burn_rate),
       icon: <Flame className="h-5 w-5" />,
-      description: 'Monthly cash expenditure',
+      description: 'Monthly cash deficit above revenue',
       color:
         analysis.burn_rate < 10000
           ? 'text-emerald-600'
@@ -58,7 +67,7 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
         ? 'N/A'
         : `${analysis.cash_runway_months!.toFixed(1)} mo`,
       icon: <Clock className="h-5 w-5" />,
-      description: 'Months until cash runs out',
+      description: 'Months reserves last at current expenses',
       color: isRunwayNotApplicable
         ? 'text-gray-500'
         : analysis.cash_runway_months! >= 12
@@ -71,7 +80,7 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
       label: 'Debt Ratio',
       value: formatPercent(analysis.debt_ratio * 100),
       icon: <DollarSign className="h-5 w-5" />,
-      description: 'Total debt relative to assets',
+      description: 'Total debt relative to estimated assets',
       color:
         analysis.debt_ratio < 0.4
           ? 'text-emerald-600'
@@ -93,15 +102,17 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
     },
     {
       label: 'Revenue Trend',
-      value: formatPercent(analysis.revenue_trend),
-      icon:
-        analysis.revenue_trend >= 0 ? (
-          <TrendingUp className="h-5 w-5" />
-        ) : (
-          <TrendingDown className="h-5 w-5" />
-        ),
+      value: analysis.revenue_trend !== null
+        ? formatPercent(analysis.revenue_trend * 100)
+        : 'N/A',
+      icon: revTrendIcon,
       description: 'Month-over-month revenue change',
-      color: analysis.revenue_trend >= 0 ? 'text-emerald-600' : 'text-red-600',
+      color:
+        analysis.revenue_trend === null
+          ? 'text-gray-500'
+          : analysis.revenue_trend >= 0
+          ? 'text-emerald-600'
+          : 'text-red-600',
     },
   ];
 

@@ -34,8 +34,9 @@ def _build_analysis_data(
     scope: str,
     advisor: AdvisorService,
     engine: FinancialAnalysisEngine,
+    industry: str = "",
 ):
-    result = engine.analyze(record, previous)
+    result = engine.analyze(record, previous, industry=industry)
     recommendations = advisor.generate_recommendations(result)
     explanation = advisor.generate_risk_explanation(result)
 
@@ -50,6 +51,8 @@ def _build_analysis_data(
         "debt_ratio": result.debt_ratio,
         "liquidity_ratio": result.liquidity_ratio,
         "altman_z_score": result.altman_z_score,
+        "financial_health_score": result.financial_health_score,
+        "bankruptcy_probability": result.bankruptcy_probability,
         "risk_score": result.risk_score,
         "risk_level": result.risk_level,
         "recommendations": recommendations,
@@ -58,6 +61,7 @@ def _build_analysis_data(
         "analysis_scope": scope,
         "period_month": getattr(record, "period_month", None) if scope == "monthly" else None,
         "period_year": getattr(record, "period_year", None) if scope == "monthly" else None,
+        "industry_model_applied": result.industry_model_applied,
     }
 
 
@@ -105,7 +109,7 @@ def run_analysis(
     Run a financial risk analysis on the most recent financial record for the business.
     Returns the full analysis result including risk score, metrics, and recommendations.
     """
-    _assert_business_owner(business_id, current_user, db)
+    business = _assert_business_owner(business_id, current_user, db)
 
     record_repo = FinancialRecordRepository(db)
     latest = record_repo.get_latest(business_id)
@@ -129,6 +133,7 @@ def run_analysis(
         scope="monthly",
         advisor=advisor,
         engine=engine,
+        industry=business.industry or "",
     )
 
     return RiskAnalysisRepository(db).create(analysis_data)
@@ -141,7 +146,7 @@ def run_all_months_analysis(
     current_user: User = Depends(get_current_user),
 ):
     """Run and persist one analysis per available financial month for the business."""
-    _assert_business_owner(business_id, current_user, db)
+    business = _assert_business_owner(business_id, current_user, db)
 
     record_repo = FinancialRecordRepository(db)
     records = record_repo.get_by_business(business_id)
@@ -165,6 +170,7 @@ def run_all_months_analysis(
             scope="monthly",
             advisor=advisor,
             engine=engine,
+            industry=business.industry or "",
         )
         created.append(repo.create(analysis_data))
 
@@ -178,7 +184,7 @@ def run_combined_analysis(
     current_user: User = Depends(get_current_user),
 ):
     """Run and persist a single combined analysis across all available months."""
-    _assert_business_owner(business_id, current_user, db)
+    business = _assert_business_owner(business_id, current_user, db)
 
     record_repo = FinancialRecordRepository(db)
     records = record_repo.get_by_business(business_id)
@@ -199,6 +205,7 @@ def run_combined_analysis(
         scope="combined",
         advisor=advisor,
         engine=engine,
+        industry=business.industry or "",
     )
 
     return RiskAnalysisRepository(db).create(analysis_data)

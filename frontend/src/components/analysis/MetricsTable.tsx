@@ -21,11 +21,16 @@ function statusColor(status: 'good' | 'warn' | 'bad' | 'neutral'): string {
   }
 }
 
+/** Returns ↑, ↓, or → based on direction of a ratio-scale trend value. */
+function trendArrow(value: number): string {
+  if (value > 0.005) return '↑ ';
+  if (value < -0.005) return '↓ ';
+  return '→ ';
+}
+
 export function MetricsTable({ analysis }: MetricsTableProps) {
   const isRunwayNotApplicable =
-    analysis.cash_runway_months === null ||
-    analysis.burn_rate <= 0 ||
-    analysis.cash_runway_months >= 999;
+    analysis.cash_runway_months === null;
 
   const rows: MetricRow[] = [
     {
@@ -38,7 +43,7 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
       label: 'Burn Rate',
       value: formatCurrency(analysis.burn_rate),
       status: analysis.burn_rate < 10000 ? 'good' : analysis.burn_rate < 50000 ? 'warn' : 'bad',
-      description: 'Monthly cash being consumed',
+      description: 'Monthly cash being consumed above revenue',
     },
     {
       label: 'Cash Runway',
@@ -52,13 +57,13 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
         : analysis.cash_runway_months! >= 6
         ? 'warn'
         : 'bad',
-      description: 'How long current cash lasts at burn rate',
+      description: 'How long reserves last at current expense rate',
     },
     {
       label: 'Debt Ratio',
       value: formatPercent(analysis.debt_ratio * 100),
       status: analysis.debt_ratio < 0.4 ? 'good' : analysis.debt_ratio < 0.7 ? 'warn' : 'bad',
-      description: 'Total debt relative to total assets',
+      description: 'Total debt relative to estimated assets',
     },
     {
       label: 'Liquidity Ratio',
@@ -68,14 +73,32 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
     },
     {
       label: 'Revenue Trend',
-      value: formatPercent(analysis.revenue_trend),
-      status: analysis.revenue_trend >= 5 ? 'good' : analysis.revenue_trend >= 0 ? 'warn' : 'bad',
+      value: analysis.revenue_trend === null
+        ? 'N/A'
+        : analysis.revenue_trend === 0
+        ? 'Stable'
+        : `${trendArrow(analysis.revenue_trend)}${formatPercent(analysis.revenue_trend * 100)}`,
+      status: analysis.revenue_trend === null
+        ? 'neutral'
+        : analysis.revenue_trend * 100 >= 5
+        ? 'good'
+        : analysis.revenue_trend >= 0
+        ? 'warn'
+        : 'bad',
       description: 'Month-over-month revenue growth',
     },
     {
       label: 'Expense Trend',
-      value: formatPercent(analysis.expense_trend),
-      status: analysis.expense_trend <= 5 ? 'good' : analysis.expense_trend <= 15 ? 'warn' : 'bad',
+      value: analysis.expense_trend !== null
+        ? `${trendArrow(analysis.expense_trend)}${formatPercent(analysis.expense_trend * 100)}`
+        : 'N/A',
+      status: analysis.expense_trend === null
+        ? 'neutral'
+        : analysis.expense_trend * 100 <= 5
+        ? 'good'
+        : analysis.expense_trend * 100 <= 15
+        ? 'warn'
+        : 'bad',
       description: 'Month-over-month expense growth',
     },
     {
