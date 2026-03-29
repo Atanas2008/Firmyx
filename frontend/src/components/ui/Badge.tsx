@@ -10,11 +10,11 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  safe: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-  moderate_risk: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  high_risk: 'bg-red-50 text-red-700 ring-1 ring-red-200',
-  neutral: 'bg-gray-100 text-gray-700 ring-1 ring-gray-200',
-  info: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+  safe: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800',
+  moderate_risk: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200 dark:ring-amber-800',
+  high_risk: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800',
+  neutral: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 ring-1 ring-gray-200 dark:ring-gray-600',
+  info: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800',
 };
 
 export function Badge({ variant = 'neutral', children, className }: BadgeProps) {

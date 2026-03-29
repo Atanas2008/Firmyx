@@ -62,7 +62,7 @@ export function riskLabel(
 ): string {
   switch (level) {
     case 'safe':
-      return 'Safe';
+      return 'Low Risk';
     case 'moderate_risk':
       return 'Moderate Risk';
     case 'high_risk':
@@ -73,28 +73,26 @@ export function riskLabel(
 }
 
 const SAFE_THRESHOLD = 30;
-const MODERATE_THRESHOLD = 50;
+const MODERATE_THRESHOLD = 60;
 
 export function scoreColor(score: number): string {
-  if (score <= 30) return '#10b981'; // emerald — Safe
-  if (score <= 50) return '#f59e0b'; // amber   — Moderate Risk
-  if (score <= 70) return '#f97316'; // orange  — High Risk
-  return '#ef4444';                  // red     — Critical Risk
+  if (score <= 30) return '#10b981'; // emerald — Low Risk
+  if (score <= 60) return '#f59e0b'; // amber   — Moderate Risk
+  return '#ef4444';                  // red     — High Risk
 }
 
 /**
- * Derives a human-readable 4-tier risk label directly from the numeric risk score.
+ * Derives a human-readable 3-tier risk label directly from the numeric risk score.
  * Matches the FinancialHealthCard inverse tiers (health_score = 100 - risk_score).
  */
 export function scoreTierLabel(score: number): string {
-  if (score <= 30) return 'Safe';
-  if (score <= 50) return 'Moderate Risk';
-  if (score <= 70) return 'High Risk';
-  return 'Critical Risk';
+  if (score <= 30) return 'Low Risk';
+  if (score <= 60) return 'Moderate Risk';
+  return 'High Risk';
 }
 
-export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
+export function formatDate(dateString: string, locale: string = 'en-US'): string {
+  return new Date(dateString).toLocaleDateString(locale === 'bg' ? 'bg-BG' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

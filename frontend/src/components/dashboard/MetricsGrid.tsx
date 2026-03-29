@@ -8,6 +8,8 @@ import {
   Scale,
 } from 'lucide-react';
 import { formatPercent, formatCurrency } from '@/lib/utils';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { useLanguage } from '@/hooks/useLanguage';
 import type { RiskAnalysis } from '@/types';
 
 interface MetricsGridProps {
@@ -23,6 +25,7 @@ interface MetricItem {
 }
 
 export function MetricsGrid({ analysis }: MetricsGridProps) {
+  const { t } = useLanguage();
   const isRunwayNotApplicable =
     analysis.cash_runway_months === null ||
     analysis.cash_runway_months >= 999;
@@ -38,10 +41,10 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
 
   const metrics: MetricItem[] = [
     {
-      label: 'Profit Margin',
+      label: t.metrics.profitMargin,
       value: formatPercent(analysis.profit_margin),
       icon: <TrendingUp className="h-5 w-5" />,
-      description: 'Net income as % of revenue',
+      description: t.metrics.profitMarginDesc,
       color:
         analysis.profit_margin >= 10
           ? 'text-emerald-600'
@@ -50,25 +53,29 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
           : 'text-red-600',
     },
     {
-      label: 'Burn Rate',
+      label: t.metrics.burnRate,
       value: formatCurrency(analysis.burn_rate),
       icon: <Flame className="h-5 w-5" />,
-      description: 'Monthly cash deficit above revenue',
+      description: t.metrics.burnRateDesc,
       color:
-        analysis.burn_rate < 10000
+        analysis.burn_rate === 0
           ? 'text-emerald-600'
           : analysis.burn_rate < 50000
           ? 'text-amber-600'
           : 'text-red-600',
     },
     {
-      label: 'Cash Runway',
-      value: isRunwayNotApplicable
-        ? 'N/A'
-        : `${analysis.cash_runway_months!.toFixed(1)} mo`,
+      label: t.metrics.cashRunway,
+      value: analysis.burn_rate === 0
+        ? t.metrics.notAtRisk
+        : isRunwayNotApplicable
+        ? t.common.notApplicable
+        : `${analysis.cash_runway_months!.toFixed(1)} ${t.common.mo}`,
       icon: <Clock className="h-5 w-5" />,
-      description: 'Months reserves last at current expenses',
-      color: isRunwayNotApplicable
+      description: t.metrics.cashRunwayDesc,
+      color: analysis.burn_rate === 0
+        ? 'text-emerald-600'
+        : isRunwayNotApplicable
         ? 'text-gray-500'
         : analysis.cash_runway_months! >= 12
         ? 'text-emerald-600'
@@ -77,10 +84,10 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
         : 'text-red-600',
     },
     {
-      label: 'Debt Ratio',
+      label: t.metrics.debtRatio,
       value: formatPercent(analysis.debt_ratio * 100),
       icon: <DollarSign className="h-5 w-5" />,
-      description: 'Total debt relative to estimated assets',
+      description: t.metrics.debtRatioDesc,
       color:
         analysis.debt_ratio < 0.4
           ? 'text-emerald-600'
@@ -89,10 +96,10 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
           : 'text-red-600',
     },
     {
-      label: 'Liquidity Ratio',
+      label: t.metrics.liquidityRatio,
       value: analysis.liquidity_ratio.toFixed(2),
       icon: <Scale className="h-5 w-5" />,
-      description: 'Ability to cover short-term debts',
+      description: t.metrics.liquidityRatioDesc,
       color:
         analysis.liquidity_ratio >= 2
           ? 'text-emerald-600'
@@ -101,12 +108,12 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
           : 'text-red-600',
     },
     {
-      label: 'Revenue Trend',
+      label: t.metrics.revenueTrend,
       value: analysis.revenue_trend !== null
         ? formatPercent(analysis.revenue_trend * 100)
-        : 'N/A',
+        : t.common.notApplicable,
       icon: revTrendIcon,
-      description: 'Month-over-month revenue change',
+      description: t.metrics.revenueTrendDesc,
       color:
         analysis.revenue_trend === null
           ? 'text-gray-500'
@@ -121,12 +128,14 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
       {metrics.map((m) => (
         <div
           key={m.label}
-          className="rounded-xl border border-gray-100 bg-gray-50 p-4"
+          className="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 p-4"
         >
           <div className={`mb-2 ${m.color}`}>{m.icon}</div>
-          <p className="text-xs text-gray-500">{m.label}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+            {m.label}
+            <InfoTooltip text={m.description} />
+          </p>
           <p className={`mt-0.5 text-xl font-bold ${m.color}`}>{m.value}</p>
-          <p className="mt-1 text-xs text-gray-400">{m.description}</p>
         </div>
       ))}
     </div>

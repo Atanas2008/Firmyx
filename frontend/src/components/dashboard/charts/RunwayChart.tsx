@@ -12,12 +12,16 @@ import {
 } from 'recharts';
 import type { RiskAnalysis } from '@/types';
 import { formatDate } from '@/lib/utils';
+import { useTheme } from '@/hooks/useTheme';
 
 interface RunwayChartProps {
   analyses: RiskAnalysis[];
 }
 
 export function RunwayChart({ analyses }: RunwayChartProps) {
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme === 'dark';
+
   if (!analyses || analyses.length === 0) {
     return null;
   }
@@ -48,15 +52,15 @@ export function RunwayChart({ analyses }: RunwayChartProps) {
             <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={dark ? '#374151' : '#f0f0f0'} />
         <XAxis
           dataKey="name"
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: dark ? '#9ca3af' : undefined }}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: dark ? '#9ca3af' : undefined }}
           tickLine={false}
           axisLine={false}
           tickFormatter={(v: number) => `${v}mo`}
@@ -68,7 +72,9 @@ export function RunwayChart({ analyses }: RunwayChartProps) {
           ]}
           contentStyle={{
             borderRadius: '8px',
-            border: '1px solid #e5e7eb',
+            border: dark ? '1px solid #374151' : '1px solid #e5e7eb',
+            backgroundColor: dark ? '#1f2937' : '#fff',
+            color: dark ? '#f9fafb' : undefined,
             fontSize: 12,
           }}
         />

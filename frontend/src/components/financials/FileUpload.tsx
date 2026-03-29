@@ -3,6 +3,7 @@
 import { useState, useRef, type DragEvent, type ChangeEvent } from 'react';
 import { Upload, FileText, X, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useLanguage } from '@/hooks/useLanguage';
 import { cn } from '@/lib/utils';
 
 interface FileUploadProps {
@@ -16,6 +17,7 @@ export function FileUpload({
   loading = false,
   accept = '.csv,.xlsx,.xls',
 }: FileUploadProps) {
+  const { t } = useLanguage();
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploaded, setUploaded] = useState(false);
@@ -64,10 +66,10 @@ export function FileUpload({
         className={cn(
           'relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 text-center transition-colors cursor-pointer',
           dragging
-            ? 'border-blue-400 bg-blue-50'
+            ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
             : file
-            ? 'border-emerald-300 bg-emerald-50 cursor-default'
-            : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
+            ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 cursor-default'
+            : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
         )}
       >
         <input
@@ -85,13 +87,13 @@ export function FileUpload({
             ) : (
               <FileText className="mb-3 h-10 w-10 text-blue-500" />
             )}
-            <p className="text-sm font-medium text-gray-700">{file.name}</p>
-            <p className="text-xs text-gray-400">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{file.name}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               {(file.size / 1024).toFixed(1)} KB
             </p>
             {uploaded && (
               <p className="mt-1 text-xs font-medium text-emerald-600">
-                Upload successful!
+                {t.fileUpload.uploadSuccessful}
               </p>
             )}
             <button
@@ -99,26 +101,25 @@ export function FileUpload({
                 e.stopPropagation();
                 clearFile();
               }}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X className="h-4 w-4" />
             </button>
           </>
         ) : (
           <>
-            <Upload className="mb-3 h-10 w-10 text-gray-400" />
-            <p className="text-sm font-semibold text-gray-700">
-              Drop your file here or click to browse
+            <Upload className="mb-3 h-10 w-10 text-gray-400 dark:text-gray-500" />
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+              {t.fileUpload.dropOrClick}
             </p>
-            <p className="mt-1 text-xs text-gray-400">
-              Supports CSV, XLSX, XLS files
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              {t.fileUpload.formatsSupported}
             </p>
-            <p className="mt-2 text-xs text-gray-400">
-              Monthly format: one row per month (requires a{' '}
-              <span className="font-medium">month</span> column).
+            <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+              {t.fileUpload.monthlyFormatHint}{' '}
+              <span className="font-medium">{t.fileUpload.monthColumn}</span> {t.fileUpload.columnSuffix}
               <br />
-              Annual format: one row per year — annual totals are split
-              into 12 monthly records automatically.
+              {t.fileUpload.annualFormatHint}
             </p>
           </>
         )}
@@ -126,7 +127,7 @@ export function FileUpload({
 
       {file && !uploaded && (
         <Button onClick={handleSubmit} loading={loading} disabled={loading}>
-          Upload &amp; Process File
+          {t.fileUpload.uploadAndProcess}
         </Button>
       )}
     </div>

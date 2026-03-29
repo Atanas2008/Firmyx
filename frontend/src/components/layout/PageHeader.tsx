@@ -23,19 +23,19 @@ export function PageHeader({
   return (
     <div className="mb-6">
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="mb-2 flex items-center gap-1 text-sm text-gray-500">
+        <nav className="mb-2 flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1">
               {i > 0 && <ChevronRight className="h-3.5 w-3.5" />}
               {crumb.href ? (
                 <Link
                   href={crumb.href}
-                  className="hover:text-blue-600 transition-colors"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="text-gray-900 font-medium">{crumb.label}</span>
+                <span className="text-gray-900 dark:text-gray-50 font-medium">{crumb.label}</span>
               )}
             </span>
           ))}
@@ -43,9 +43,9 @@ export function PageHeader({
       )}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">{title}</h1>
           {description && (
-            <p className="mt-1 text-sm text-gray-500">{description}</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}

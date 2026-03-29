@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { authApi } from '@/lib/api';
+import { useLanguage } from '@/hooks/useLanguage';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -28,12 +30,12 @@ export default function RegisterPage() {
 
   function validate(): boolean {
     const errs: Record<string, string> = {};
-    if (!form.full_name.trim()) errs.full_name = 'Full name is required.';
-    if (!form.email.includes('@')) errs.email = 'Enter a valid email.';
+    if (!form.full_name.trim()) errs.full_name = t.validation.required;
+    if (!form.email.includes('@')) errs.email = t.validation.emailInvalid;
     if (form.password.length < 8)
-      errs.password = 'Password must be at least 8 characters.';
+      errs.password = t.validation.passwordMin;
     if (form.password !== form.confirmPassword)
-      errs.confirmPassword = 'Passwords do not match.';
+      errs.confirmPassword = t.validation.passwordMismatch;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -54,7 +56,7 @@ export default function RegisterPage() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Registration failed. Please try again.';
+          ?.detail ?? t.auth.registrationFailed;
       setApiError(msg);
     } finally {
       setLoading(false);
@@ -63,14 +65,14 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
         <div className="text-center">
           <CheckCircle2 className="mx-auto mb-4 h-16 w-16 text-emerald-500" />
-          <h2 className="text-2xl font-bold text-gray-900">
-            Account created!
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+            {t.auth.accountCreated}
           </h2>
-          <p className="mt-2 text-gray-500">
-            Redirecting you to sign in…
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
+            {t.auth.redirecting}
           </p>
         </div>
       </div>
@@ -78,36 +80,36 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="w-full max-w-md">
         {/* Branding */}
         <div className="mb-8 text-center">
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 shadow-lg mb-4">
             <ShieldCheck className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">FirmShield</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Start protecting your business today
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">Firmyx</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {t.auth.registerSubtitle}
           </p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl bg-white shadow-xl border border-gray-100 p-8">
-          <h2 className="mb-6 text-xl font-semibold text-gray-900">
-            Create your account
+        <div className="rounded-2xl bg-white dark:bg-gray-900 shadow-xl dark:shadow-none border border-gray-100 dark:border-gray-800 p-8">
+          <h2 className="mb-6 text-xl font-semibold text-gray-900 dark:text-gray-50">
+            {t.auth.createAccountTitle}
           </h2>
 
           {apiError && (
-            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
               {apiError}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Full name"
+              label={t.auth.fullName}
               type="text"
-              placeholder="Jane Smith"
+              placeholder={t.auth.namePlaceholder}
               value={form.full_name}
               onChange={(e) => setField('full_name', e.target.value)}
               error={errors.full_name}
@@ -115,9 +117,9 @@ export default function RegisterPage() {
               required
             />
             <Input
-              label="Email address"
+              label={t.auth.email}
               type="email"
-              placeholder="jane@company.com"
+              placeholder={t.auth.registerEmailPlaceholder}
               value={form.email}
               onChange={(e) => setField('email', e.target.value)}
               error={errors.email}
@@ -125,9 +127,9 @@ export default function RegisterPage() {
               required
             />
             <Input
-              label="Password"
+              label={t.auth.password}
               type="password"
-              placeholder="Min. 8 characters"
+              placeholder={t.auth.minChars}
               value={form.password}
               onChange={(e) => setField('password', e.target.value)}
               error={errors.password}
@@ -135,9 +137,9 @@ export default function RegisterPage() {
               required
             />
             <Input
-              label="Confirm password"
+              label={t.auth.confirmPassword}
               type="password"
-              placeholder="Repeat your password"
+              placeholder={t.auth.repeatPassword}
               value={form.confirmPassword}
               onChange={(e) => setField('confirmPassword', e.target.value)}
               error={errors.confirmPassword}
@@ -150,17 +152,17 @@ export default function RegisterPage() {
               className="w-full"
               size="lg"
             >
-              Create account
+              {t.auth.createAccount}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500">
-            Already have an account?{' '}
+          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            {t.auth.hasAccount}{' '}
             <Link
               href="/login"
-              className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
             >
-              Sign in
+              {t.auth.signIn}
             </Link>
           </p>
         </div>

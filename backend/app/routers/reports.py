@@ -11,8 +11,11 @@ from app.models.user import User
 from app.schemas.report import ReportRead, ReportGenerateRequest
 from app.repositories.business_repository import BusinessRepository
 from app.repositories.risk_analysis_repository import RiskAnalysisRepository
+from app.repositories.financial_record_repository import FinancialRecordRepository
 from app.services.auth_service import get_current_user
 from app.services.report_generator import ReportGenerator
+from app.services.forecasting import calculate_forecast
+from app.services.scenario import simulate_scenario
 
 router = APIRouter()
 
@@ -58,7 +61,23 @@ def generate_report(
         selected_analysis = found
 
     generator = ReportGenerator()
-    filepath = generator.generate(business, selected_analysis)
+
+    # CHANGED: Optionally generate forecast data for the report
+    forecast_data = None
+    record_repo = FinancialRecordRepository(db)
+    latest_record = record_repo.get_latest(business_id)
+    if latest_record:
+        forecast_data = calculate_forecast(
+            current_revenue=float(latest_record.monthly_revenue or 0),
+            current_expenses=float(latest_record.monthly_expenses or 0),
+            cash_reserves=float(latest_record.cash_reserves or 0),
+            debt=float(latest_record.debt or 0),
+            revenue_trend=selected_analysis.revenue_trend,
+            expense_trend=selected_analysis.expense_trend,
+            months=12,
+        )
+
+    filepath = generator.generate(business, selected_analysis, forecast_data=forecast_data)
 
     report_data = {
         "business_id": business_id,

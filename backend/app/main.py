@@ -6,11 +6,11 @@ from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.middleware.rate_limiter import limiter
-from app.routers import auth, businesses, financial_records, analysis, reports
+from app.routers import auth, businesses, financial_records, analysis, reports, translate
 
 app = FastAPI(
-    title="FirmShield API",
-    description="Backend API for FirmShield - Financial Risk Detection Platform",
+    title="Firmyx API",
+    description="Backend API for Firmyx - Financial Risk Detection Platform",
     version="1.0.0",
 )
 
@@ -30,6 +30,7 @@ app.include_router(businesses.router, prefix="/api/businesses", tags=["Businesse
 app.include_router(financial_records.router, prefix="/api/businesses", tags=["Financial Records"])
 app.include_router(analysis.router, prefix="/api/businesses", tags=["Analysis"])
 app.include_router(reports.router, prefix="/api/businesses", tags=["Reports"])
+app.include_router(translate.router, prefix="/api", tags=["Translation"])
 
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 os.makedirs(settings.REPORTS_DIR, exist_ok=True)
@@ -37,7 +38,7 @@ os.makedirs(settings.REPORTS_DIR, exist_ok=True)
 
 @app.get("/", tags=["Health"])
 def root():
-    return {"status": "ok", "service": "FirmShield API"}
+    return {"status": "ok", "service": "Firmyx API"}
 
 
 @app.get("/health", tags=["Health"])

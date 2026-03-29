@@ -1,6 +1,6 @@
-# 🛡️ FirmShield
+# 🛡️ Firmyx
 
-**FirmShield** is a production-ready SaaS platform that helps small and medium business owners detect financial risk and potential bankruptcy early. It acts as a "digital financial advisor" — analyzing your financial data and providing clear, actionable insights.
+**Firmyx** is a production-ready SaaS platform that helps small and medium business owners detect financial risk and potential bankruptcy early. It acts as a "digital financial advisor" — analyzing your financial data and providing clear, actionable insights.
 
 ---
 
@@ -20,7 +20,7 @@
 ## 🏗️ Architecture
 
 ```
-firmshield/
+firmyx/
 ├── backend/          # Python FastAPI
 │   ├── app/
 │   │   ├── models/        # SQLAlchemy ORM models
@@ -47,8 +47,8 @@ firmshield/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/Atanas2008/FirmShield.git
-cd FirmShield
+git clone https://github.com/Atanas2008/Firmyx.git
+cd Firmyx
 ```
 
 ### 2. Configure environment
@@ -126,7 +126,7 @@ App available at: http://localhost:3000
 
 ## 📊 Financial Analysis Engine
 
-FirmShield's risk engine calculates the following metrics:
+Firmyx's risk engine calculates the following metrics:
 
 | Metric | Formula | Healthy Range |
 |--------|---------|---------------|

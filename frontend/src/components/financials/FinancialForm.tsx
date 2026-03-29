@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useLanguage } from '@/hooks/useLanguage';
 import type { CreateRecordData } from '@/types';
 
 interface FinancialFormProps {
@@ -28,6 +29,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps) {
+  const { t } = useLanguage();
   const now = new Date();
   const [form, setForm] = useState<CreateRecordData>({
     period_month: now.getMonth() + 1,
@@ -195,19 +197,19 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
     const resolvedAssets = form.total_assets ?? (form.monthly_revenue + form.cash_reserves);
 
     if (form.monthly_revenue === 0 && form.monthly_expenses > 0) {
-      items.push('Revenue is 0 while expenses are positive. Risk outputs may indicate severe stress.');
+      items.push(t.warnings.zeroRevenue);
     }
 
     if (form.monthly_expenses > form.monthly_revenue && form.cash_reserves < form.monthly_expenses * 3) {
-      items.push('Expenses exceed revenue and cash reserves cover less than ~3 months of expenses.');
+      items.push(t.warnings.lowCash);
     }
 
     if (resolvedAssets > 0 && form.debt / resolvedAssets > 2) {
-      items.push('Debt is more than 200% of total assets, which may drive a high-risk result.');
+      items.push(t.warnings.highDebt);
     }
 
     if (form.cost_of_goods_sold > form.monthly_revenue && form.monthly_revenue > 0) {
-      items.push('COGS is greater than revenue. Please verify revenue or COGS values.');
+      items.push(t.warnings.highCogs);
     }
 
     return items;
@@ -230,12 +232,12 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Period */}
       <div>
-        <p className="mb-3 text-sm font-semibold text-gray-700">Reporting Period</p>
+        <p className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">{t.financials.reportingPeriod}</p>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Month</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{t.financials.month}</label>
             <select
-              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.period_month}
               onChange={(e) => setField('period_month', e.target.value)}
             >
@@ -245,9 +247,9 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             </select>
           </div>
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Year</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{t.financials.year}</label>
             <select
-              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={form.period_year}
               onChange={(e) => setField('period_year', e.target.value)}
             >
@@ -261,10 +263,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
 
       {/* Income & Expenses */}
       <div>
-        <p className="mb-3 text-sm font-semibold text-gray-700">Income &amp; Expenses</p>
+        <p className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">{t.financials.incomeExpenses}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
-            label="Monthly Revenue ($)"
+            label={t.financials.monthlyRevenue}
             type="text"
             inputMode="decimal"
             min="0"
@@ -274,10 +276,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onFocus={() => handleMoneyFocus('monthly_revenue')}
             onBlur={() => handleMoneyBlur('monthly_revenue')}
             error={errors.monthly_revenue}
-            hint="Total income this month"
+            hint={t.financials.totalIncomeHint}
           />
           <Input
-            label="Monthly Expenses ($)"
+            label={t.financials.monthlyExpenses}
             type="text"
             inputMode="decimal"
             min="0"
@@ -287,10 +289,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onFocus={() => handleMoneyFocus('monthly_expenses')}
             onBlur={() => handleMoneyBlur('monthly_expenses')}
             error={errors.monthly_expenses}
-            hint="Total spending this month"
+            hint={t.financials.totalExpensesHint}
           />
           <Input
-            label="Cost of Goods Sold ($)"
+            label={t.financials.cogs}
             type="text"
             inputMode="decimal"
             min="0"
@@ -299,10 +301,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onChange={(e) => setMoneyField('cost_of_goods_sold', e.target.value)}
             onFocus={() => handleMoneyFocus('cost_of_goods_sold')}
             onBlur={() => handleMoneyBlur('cost_of_goods_sold')}
-            hint="Direct costs of products/services"
+            hint={t.financials.cogsHint}
           />
           <Input
-            label="Taxes ($)"
+            label={t.financials.taxes}
             type="text"
             inputMode="decimal"
             min="0"
@@ -311,17 +313,17 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onChange={(e) => setMoneyField('taxes', e.target.value)}
             onFocus={() => handleMoneyFocus('taxes')}
             onBlur={() => handleMoneyBlur('taxes')}
-            hint="Taxes paid this month"
+            hint={t.financials.taxesHint}
           />
         </div>
       </div>
 
       {/* Fixed Costs */}
       <div>
-        <p className="mb-3 text-sm font-semibold text-gray-700">Fixed Costs</p>
+        <p className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">{t.financials.fixedCosts}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
-            label="Payroll ($)"
+            label={t.financials.payroll}
             type="text"
             inputMode="decimal"
             min="0"
@@ -330,10 +332,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onChange={(e) => setMoneyField('payroll', e.target.value)}
             onFocus={() => handleMoneyFocus('payroll')}
             onBlur={() => handleMoneyBlur('payroll')}
-            hint="Employee salaries and wages"
+            hint={t.financials.employeeSalariesHint}
           />
           <Input
-            label="Rent ($)"
+            label={t.financials.rent}
             type="text"
             inputMode="decimal"
             min="0"
@@ -342,17 +344,17 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onChange={(e) => setMoneyField('rent', e.target.value)}
             onFocus={() => handleMoneyFocus('rent')}
             onBlur={() => handleMoneyBlur('rent')}
-            hint="Office / facility rent"
+            hint={t.financials.officeRentHint}
           />
         </div>
       </div>
 
       {/* Balance Sheet */}
       <div>
-        <p className="mb-3 text-sm font-semibold text-gray-700">Balance Sheet</p>
+        <p className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">{t.financials.balanceSheet}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
-            label="Total Debt ($)"
+            label={t.financials.totalDebt}
             type="text"
             inputMode="decimal"
             min="0"
@@ -361,10 +363,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onChange={(e) => setMoneyField('debt', e.target.value)}
             onFocus={() => handleMoneyFocus('debt')}
             onBlur={() => handleMoneyBlur('debt')}
-            hint="Outstanding loans and liabilities"
+            hint={t.financials.outstandingDebtHint}
           />
           <Input
-            label="Cash Reserves ($)"
+            label={t.financials.cashReserves}
             type="text"
             inputMode="decimal"
             min="0"
@@ -374,10 +376,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onFocus={() => handleMoneyFocus('cash_reserves')}
             onBlur={() => handleMoneyBlur('cash_reserves')}
             error={errors.cash_reserves}
-            hint="Cash on hand and in bank"
+            hint={t.financials.cashReservesHint}
           />
           <Input
-            label="Total Assets ($)"
+            label={t.financials.totalAssets}
             type="text"
             inputMode="decimal"
             min="0"
@@ -387,10 +389,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onFocus={() => handleMoneyFocus('total_assets')}
             onBlur={() => handleMoneyBlur('total_assets')}
             error={errors.total_assets}
-            hint="Optional: improves debt ratio and Altman accuracy"
+            hint={t.financials.totalAssetsTooltip}
           />
           <Input
-            label="Current Liabilities ($)"
+            label={t.financials.currentLiabilities}
             type="text"
             inputMode="decimal"
             min="0"
@@ -400,10 +402,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onFocus={() => handleMoneyFocus('current_liabilities')}
             onBlur={() => handleMoneyBlur('current_liabilities')}
             error={errors.current_liabilities}
-            hint="Optional: used for working capital and liquidity"
+            hint={t.financials.currentLiabilitiesTooltip}
           />
           <Input
-            label="EBIT ($)"
+            label={t.financials.ebit}
             type="text"
             inputMode="decimal"
             step="0.01"
@@ -412,10 +414,10 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onFocus={() => handleMoneyFocus('ebit')}
             onBlur={() => handleMoneyBlur('ebit')}
             error={errors.ebit}
-            hint="Optional: direct earnings before interest and taxes"
+            hint={t.financials.ebitTooltip}
           />
           <Input
-            label="Retained Earnings ($)"
+            label={t.financials.retainedEarnings}
             type="text"
             inputMode="decimal"
             step="0.01"
@@ -424,14 +426,14 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
             onFocus={() => handleMoneyFocus('retained_earnings')}
             onBlur={() => handleMoneyBlur('retained_earnings')}
             error={errors.retained_earnings}
-            hint="Optional: cumulative retained profit"
+            hint={t.financials.retainedEarningsTooltip}
           />
         </div>
       </div>
 
       {warnings.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <p className="mb-1 font-medium">Data sanity checks</p>
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          <p className="mb-1 font-medium">{t.warnings.dataSanityChecks}</p>
           <ul className="list-disc pl-5 space-y-1">
             {warnings.map((warning) => (
               <li key={warning}>{warning}</li>
@@ -441,7 +443,7 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
       )}
 
       <Button type="submit" loading={loading} size="lg" className="w-full sm:w-auto">
-        Save Financial Record
+        {t.financials.saveRecord}
       </Button>
     </form>
   );

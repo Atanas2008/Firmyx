@@ -145,7 +145,7 @@ class AdvisorService:
             drivers.append(f"an Altman Z-Score of {result.altman_z_score:.2f} (distress zone)")
         elif result.altman_z_score <= 2.99:
             drivers.append(f"an Altman Z-Score of {result.altman_z_score:.2f} (grey zone)")
-        if result.cash_runway_months is not None and result.cash_runway_months < 6:
+        if result.cash_runway_months is not None and result.burn_rate > 0 and result.cash_runway_months < 6:
             drivers.append(f"a cash runway of only {result.cash_runway_months:.1f} months")
         if result.profit_margin < 10:
             drivers.append(f"a profit margin of {result.profit_margin:.1f}%")

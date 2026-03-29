@@ -114,3 +114,63 @@ export interface ApiError {
   detail: string;
   status?: number;
 }
+
+// ─── Forecast types ──────────────────────────────────────────────────────────
+
+export interface ForecastMonth {
+  month: number;
+  label: string;
+  projected_revenue: number;
+  projected_expenses: number;
+  projected_profit: number;
+  projected_cash_balance: number;
+  projected_risk_score: number;
+  burn_rate: number;
+  runway_months: number | null;
+}
+
+export type ForecastScenario = 'baseline' | 'optimistic' | 'pessimistic';
+
+export interface ForecastResult {
+  business_id: string;
+  months: number;
+  scenario: ForecastScenario;
+  projections: ForecastMonth[];
+  projected_cash_runway: number | null;
+  end_of_period_risk_score: number;
+  end_cash_balance: number;
+}
+
+// ─── Scenario types ──────────────────────────────────────────────────────────
+
+export interface ScenarioAdjustments {
+  preset?: string;
+  revenue_change_pct: number;
+  revenue_change_abs: number;
+  expense_change_pct: number;
+  expense_change_abs: number;
+  debt_change_abs: number;
+  cash_change_abs: number;
+  cost_reduction_pct: number;
+}
+
+export interface ScenarioPreset {
+  key: string;
+  label: string;
+  description: string;
+}
+
+export interface MetricComparison {
+  original: number | null;
+  adjusted: number | null;
+  delta: number | null;
+  direction: 'better' | 'worse' | 'neutral';
+}
+
+export interface ScenarioResult {
+  business_id: string;
+  original: Record<string, number | string | null>;
+  adjusted: Record<string, number | string | null>;
+  comparison: Record<string, MetricComparison>;
+  summary: string;
+}

@@ -1,7 +1,7 @@
 import type { User } from '@/types';
 
-const ACCESS_TOKEN_KEY = 'firmshield_access_token';
-const REFRESH_TOKEN_KEY = 'firmshield_refresh_token';
+const ACCESS_TOKEN_KEY = 'firmyx_access_token';
+const REFRESH_TOKEN_KEY = 'firmyx_refresh_token';
 
 // ─── Storage helpers (SSR-safe) ───────────────────────────────────────────────
 

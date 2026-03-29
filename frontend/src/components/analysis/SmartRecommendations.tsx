@@ -4,6 +4,8 @@ import {
   AlertTriangle, TrendingUp, DollarSign, Shield, Zap, Activity,
 } from 'lucide-react';
 import { generateRecommendations } from '@/lib/aiInsights';
+import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { RiskAnalysis } from '@/types';
 import type { Recommendation, Priority } from '@/lib/aiInsights';
 
@@ -26,28 +28,31 @@ function CategoryIcon({ category }: { category: Recommendation['category'] }) {
 
 // ─── Priority badge ───────────────────────────────────────────────────────────
 const PRIORITY_STYLES: Record<Priority, string> = {
-  High:   'bg-red-50 text-red-700 ring-1 ring-red-200',
-  Medium: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  Low:    'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+  High:   'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800',
+  Medium: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 ring-1 ring-amber-200 dark:ring-amber-800',
+  Low:    'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800',
 };
 
 const ICON_BG: Record<Priority, string> = {
-  High:   'bg-red-50 text-red-600',
-  Medium: 'bg-amber-50 text-amber-600',
-  Low:    'bg-blue-50 text-blue-600',
+  High:   'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+  Medium: 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+  Low:    'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function SmartRecommendations({ analysis }: SmartRecommendationsProps) {
+  const { t } = useLanguage();
   const recommendations = generateRecommendations(analysis);
+  const recTexts = recommendations.map((r) => r.text);
+  const { translated: translatedTexts } = useTranslation(recTexts);
 
   if (recommendations.length === 0) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
+      <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 p-5 text-center">
         <TrendingUp className="mx-auto mb-2 h-6 w-6 text-emerald-500" />
-        <p className="text-sm font-semibold text-emerald-700">No critical action items</p>
-        <p className="mt-1 text-xs text-emerald-600">
-          All key financial metrics are within healthy ranges. Continue monitoring on a monthly basis.
+        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{t.recommendations.noCriticalSmart}</p>
+        <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+          {t.recommendations.healthyMetrics}
         </p>
       </div>
     );
@@ -58,7 +63,7 @@ export function SmartRecommendations({ analysis }: SmartRecommendationsProps) {
       {recommendations.map((rec, i) => (
         <li
           key={i}
-          className="flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
+          className="flex items-start gap-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm dark:shadow-none"
         >
           {/* Icon circle */}
           <span
@@ -73,13 +78,32 @@ export function SmartRecommendations({ analysis }: SmartRecommendationsProps) {
               <span
                 className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${PRIORITY_STYLES[rec.priority]}`}
               >
-                {rec.priority} priority
+                {rec.priority} {t.recommendations.priority}
               </span>
-              <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+              <span className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">
                 {rec.category}
               </span>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed">{rec.text}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{translatedTexts[i] ?? rec.text}</p>
+            {/* CHANGED: Display new metric-trigger fields */}
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+              <span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{t.recommendations.trigger}:</span>{' '}
+                {rec.metric_trigger.replace(/_/g, ' ')}
+              </span>
+              <span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{t.recommendations.current}:</span>{' '}
+                {rec.current_value}
+              </span>
+              <span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{t.recommendations.target}:</span>{' '}
+                {rec.target_value}
+              </span>
+              <span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{t.recommendations.impact}:</span>{' '}
+                {rec.estimated_impact}
+              </span>
+            </div>
           </div>
         </li>
       ))}

@@ -242,7 +242,7 @@ class FinancialAnalysisEngine:
         # --- Compute individual metrics ---
         profit_margin = self._profit_margin(revenue_monthly, expenses_monthly)
         burn_rate = self._burn_rate(revenue_monthly, expenses_monthly)
-        cash_runway = self._cash_runway(cash, expenses_monthly)
+        cash_runway = self._cash_runway(cash, burn_rate)
 
         revenue_trend = (
             self._trend(float(previous.monthly_revenue or 0), revenue_monthly)
@@ -303,20 +303,22 @@ class FinancialAnalysisEngine:
         if cash_runway is not None and cash_runway < 6:
             risk_score = min(risk_score + 10.0, 100.0)
 
+        # Hard validation: critically short runway MUST produce High Risk
+        if burn_rate > 0 and cash_runway is not None and cash_runway < 1.5:
+            risk_score = max(risk_score, 60.0)
+
         risk_score = round(min(risk_score, 100.0), 2)
 
         # Keep financial_health_score consistent with the penalised risk score
         financial_health_score = round(100.0 - risk_score, 2)
 
         # Map risk score to the 3-tier DB enum
-        # (frontend derives the 4-tier display label directly from the numeric score)
-        #   Safe          (0–30)   → "safe"
-        #   Moderate Risk (30–50)  → "moderate_risk"
-        #   High Risk     (50–70)  → "high_risk"
-        #   Critical Risk (70–100) → "high_risk"
+        #   Low Risk      (0–30)   → "safe"
+        #   Moderate Risk (30–60)  → "moderate_risk"
+        #   High Risk     (60–100) → "high_risk"
         if risk_score <= 30:
             risk_level = "safe"
-        elif risk_score <= 50:
+        elif risk_score <= 60:
             risk_level = "moderate_risk"
         else:
             risk_level = "high_risk"
@@ -364,19 +366,19 @@ class FinancialAnalysisEngine:
         """
         return max(expenses - revenue, 0.0)
 
-    def _cash_runway(self, cash_reserves: float, monthly_expenses: float) -> Optional[float]:
+    def _cash_runway(self, cash_reserves: float, burn_rate: float) -> Optional[float]:
         """
-        Cash Runway = Cash Reserves / Monthly Expenses  (months)
+        Cash Runway = Cash Reserves / Burn Rate  (months)
 
-        Shows how many months the business can sustain all operations using
-        current cash reserves, even if all revenue were to stop immediately.
-        This applies to all businesses — not just those burning cash.
+        Shows how many months until cash reserves are depleted at the current
+        net cash burn (expenses minus revenue).
 
-        Returns None if monthly expenses are zero.
+        Returns None when burn_rate <= 0 (business is cash-flow positive and
+        not depleting reserves — runway is effectively infinite / "not at risk").
         """
-        if monthly_expenses <= 0:
+        if burn_rate <= 0:
             return None
-        return cash_reserves / monthly_expenses
+        return cash_reserves / burn_rate
 
     def _trend(self, previous: float, current: float) -> float:
         """

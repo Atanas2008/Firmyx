@@ -10,6 +10,11 @@ import type {
   RiskAnalysis,
   Report,
   User,
+  ForecastResult,
+  ForecastScenario,
+  ScenarioAdjustments,
+  ScenarioResult,
+  ScenarioPreset,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -29,11 +34,13 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 globally
+// Handle 401 globally — skip redirect for auth endpoints (login/register)
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url: string = error.config?.url ?? '';
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       clearTokens();
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
@@ -101,6 +108,12 @@ export const analysisApi = {
     apiClient.get<RiskAnalysis>(
       `/businesses/${businessId}/analysis/${analysisId}`
     ),
+  forecast: (businessId: string, months: number = 12, scenario: ForecastScenario = 'baseline') =>
+    apiClient.post<ForecastResult>(`/businesses/${businessId}/forecast`, { months, scenario }),
+  scenarioPresets: (businessId: string) =>
+    apiClient.get<ScenarioPreset[]>(`/businesses/${businessId}/scenario/presets`),
+  scenario: (businessId: string, adjustments: ScenarioAdjustments) =>
+    apiClient.post<ScenarioResult>(`/businesses/${businessId}/scenario`, adjustments),
 };
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
@@ -118,4 +131,38 @@ export const reportApi = {
     }),
   downloadUrl: (businessId: string, reportId: string) =>
     `${API_BASE}/businesses/${businessId}/reports/${reportId}/download`,
+};
+
+// ─── AI Chat ─────────────────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  tokens_used: number | null;
+}
+
+export const chatApi = {
+  send: (businessId: string, message: string, history: ChatMessage[]) =>
+    apiClient.post<ChatResponse>(`/businesses/${businessId}/chat`, {
+      message,
+      history,
+    }),
+};
+
+// ── Translation ────────────────────────────────────────────
+
+export interface TranslateResponse {
+  translations: string[];
+}
+
+export const translateApi = {
+  translate: (texts: string[], target_language: string) =>
+    apiClient.post<TranslateResponse>('/translate', {
+      texts,
+      target_language,
+    }),
 };

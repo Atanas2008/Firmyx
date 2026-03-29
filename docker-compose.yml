@@ -4,15 +4,15 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: firmshield
-      POSTGRES_USER: firmshield
-      POSTGRES_PASSWORD: firmshield_dev_password
+      POSTGRES_DB: firmyx
+      POSTGRES_USER: firmyx
+      POSTGRES_PASSWORD: firmyx_dev_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - firmshield_network
+      - firmyx_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U firmshield"]
+      test: ["CMD-SHELL", "pg_isready -U firmyx"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,13 +27,13 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - DATABASE_URL=postgresql://firmshield:firmshield_dev_password@db:5432/firmshield
+      - DATABASE_URL=postgresql://firmyx:firmyx_dev_password@db:5432/firmyx
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/reports:/app/reports
     networks:
-      - firmshield_network
+      - firmyx_network
 
   frontend:
     build: ./frontend
@@ -44,10 +44,10 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     networks:
-      - firmshield_network
+      - firmyx_network
 
 networks:
-  firmshield_network:
+  firmyx_network:
     driver: bridge
 
 volumes:

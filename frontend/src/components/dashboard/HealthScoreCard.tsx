@@ -1,6 +1,7 @@
 'use client';
 
-import { scoreColor, scoreTierLabel } from '@/lib/utils';
+import { scoreColor } from '@/lib/utils';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface HealthScoreCardProps {
   score: number;
@@ -11,8 +12,11 @@ interface HealthScoreCardProps {
 export function HealthScoreCard({
   score,
   riskLevel,
-  label = 'Risk Score',
+  label,
 }: HealthScoreCardProps) {
+  const { t } = useLanguage();
+  const displayLabel = label ?? t.businesses.riskScore;
+  const tierLabel = score <= 30 ? t.risk.lowRisk : score <= 60 ? t.risk.moderateRisk : t.risk.highRisk;
   const color = scoreColor(score);
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
@@ -21,7 +25,7 @@ export function HealthScoreCard({
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{displayLabel}</p>
       <div className="relative">
         <svg width="140" height="140" viewBox="0 0 140 140">
           {/* Track */}
@@ -31,6 +35,7 @@ export function HealthScoreCard({
             r={radius}
             fill="none"
             stroke="#e5e7eb"
+            className="dark:[stroke:#374151]"
             strokeWidth="12"
           />
           {/* Progress */}
@@ -55,14 +60,14 @@ export function HealthScoreCard({
           >
             {Math.round(score)}
           </span>
-          <span className="text-xs text-gray-400">/100</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">/100</span>
         </div>
       </div>
       <span
         className="text-base font-semibold"
         style={{ color }}
       >
-        {scoreTierLabel(score)}
+        {tierLabel}
       </span>
     </div>
   );

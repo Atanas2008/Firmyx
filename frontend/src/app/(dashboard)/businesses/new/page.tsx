@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { businessApi } from '@/lib/api';
+import { useLanguage } from '@/hooks/useLanguage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -26,6 +27,7 @@ const INDUSTRIES = [
 
 export default function NewBusinessPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [form, setForm] = useState<CreateBusinessData>({
     name: '',
     industry: '',
@@ -147,24 +149,24 @@ export default function NewBusinessPage() {
   return (
     <div>
       <PageHeader
-        title="Add New Business"
-        description="Enter your business details to start monitoring financial health."
+        title={t.businesses.addNew}
+        description={t.businesses.addNewDescription}
         breadcrumbs={[
-          { label: 'Businesses', href: '/businesses' },
-          { label: 'New Business' },
+          { label: t.nav.businesses, href: '/businesses' },
+          { label: t.businesses.addNew },
         ]}
       />
 
       <div className="max-w-2xl">
         <Card>
           {apiError && (
-            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
               {apiError}
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="Business Name"
+              label={t.businesses.name}
               type="text"
               placeholder="Acme Corporation"
               value={form.name}
@@ -174,15 +176,15 @@ export default function NewBusinessPage() {
             />
 
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Industry
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                {t.businesses.industry}
               </label>
               <select
-                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={form.industry}
                 onChange={(e) => setField('industry', e.target.value)}
               >
-                <option value="">Select an industry…</option>
+                <option value="">{t.businesses.selectIndustry}…</option>
                 {INDUSTRIES.map((ind) => (
                   <option key={ind} value={ind}>
                     {ind}
@@ -195,7 +197,7 @@ export default function NewBusinessPage() {
             </div>
 
             <Input
-              label="Country"
+              label={t.businesses.country}
               type="text"
               placeholder="United States"
               value={form.country}
@@ -206,7 +208,7 @@ export default function NewBusinessPage() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
-                label="Number of Employees"
+                label={t.businesses.employees}
                 type="number"
                 min="1"
                 value={form.num_employees}
@@ -216,7 +218,7 @@ export default function NewBusinessPage() {
                 error={errors.num_employees}
               />
               <Input
-                label="Years Operating"
+                label={t.businesses.yearsOperating}
                 type="number"
                 min="0"
                 step="0.5"
@@ -230,7 +232,7 @@ export default function NewBusinessPage() {
             </div>
 
             <Input
-              label="Monthly Fixed Costs ($)"
+              label={t.businesses.monthlyFixedCosts}
               type="text"
               inputMode="decimal"
               min="0"
@@ -248,7 +250,7 @@ export default function NewBusinessPage() {
 
             <div className="flex items-center gap-3 pt-2">
               <Button type="submit" loading={loading} size="lg">
-                Create Business
+                {t.businesses.createBusiness}
               </Button>
               <Button
                 type="button"
@@ -256,7 +258,7 @@ export default function NewBusinessPage() {
                 size="lg"
                 onClick={() => router.back()}
               >
-                Cancel
+                {t.common.cancel}
               </Button>
             </div>
           </form>

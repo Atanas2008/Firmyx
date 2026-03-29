@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { useLanguage } from '@/hooks/useLanguage';
 import type { RiskAnalysis } from '@/types';
 
 interface FinancialHealthCardProps {
@@ -13,8 +15,8 @@ interface FinancialHealthCardProps {
  */
 const INDUSTRY_WEIGHT_LABELS: Record<string, string> = {
   // Metric emphasis by industry — shown as human-readable breakdown
-  Technology:            '20% Z-Score · 15% Liquidity · 25% Profit Margin · 10% Debt · 30% Revenue Trend',
-  Software:              '15% Z-Score · 15% Liquidity · 30% Profit Margin · 10% Debt · 30% Revenue Trend',
+  Technology:            '35% Z-Score · 20% Liquidity · 20% Profit Margin · 15% Debt · 10% Revenue Trend',
+  Software:              '35% Z-Score · 20% Liquidity · 20% Profit Margin · 15% Debt · 10% Revenue Trend',
   'Food & Beverage':     '25% Z-Score · 20% Liquidity · 25% Profit Margin · 20% Debt · 10% Revenue Trend',
   Restaurants:           '25% Z-Score · 20% Liquidity · 25% Profit Margin · 20% Debt · 10% Revenue Trend',
   'Coffee Chains':       '25% Z-Score · 20% Liquidity · 25% Profit Margin · 20% Debt · 10% Revenue Trend',
@@ -38,6 +40,7 @@ const INDUSTRY_WEIGHT_LABELS: Record<string, string> = {
  * FinancialHealthScore = 100 − RiskScore, so a low-risk business scores high here.
  */
 export function FinancialHealthCard({ analysis }: FinancialHealthCardProps) {
+  const { t } = useLanguage();
   const score = analysis.financial_health_score ?? null;
   const probability = analysis.bankruptcy_probability ?? null;
   const modelName = analysis.industry_model_applied ?? 'General Industry';
@@ -45,26 +48,23 @@ export function FinancialHealthCard({ analysis }: FinancialHealthCardProps) {
 
   if (score === null) {
     return (
-      <p className="text-sm text-gray-400 italic">
-        Financial Health Score not available for this analysis.
+      <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+        {t.health.notAvailable}
       </p>
     );
   }
 
-  // Determine colour tier (higher health score = safer; mirrors the 4-tier risk_score scale)
-  // health_score = 100 − risk_score, so thresholds are mirrored:
-  //   ≥ 70 → Safe          (risk_score 0–30)
-  //   ≥ 50 → Moderate Risk (risk_score 30–50)
-  //   ≥ 30 → High Risk     (risk_score 50–70)
-  //   < 30 → Critical Risk (risk_score 70–100)
+  // Determine colour tier (higher health score = safer)
+  // health_score = 100 − risk_score, so thresholds mirror risk levels:
+  //   ≥ 70 → Low Risk     (risk_score 0–30)
+  //   ≥ 40 → Moderate Risk (risk_score 30–60)
+  //   < 40 → High Risk     (risk_score 60–100)
   const tier =
     score >= 70
-      ? { label: 'Safe',          color: '#10b981', bg: 'bg-emerald-50',  text: 'text-emerald-700',  border: 'border-emerald-200'  }
-      : score >= 50
-      ? { label: 'Moderate Risk', color: '#f59e0b', bg: 'bg-amber-50',    text: 'text-amber-700',    border: 'border-amber-200'    }
-      : score >= 30
-      ? { label: 'High Risk',     color: '#f97316', bg: 'bg-orange-50',   text: 'text-orange-700',   border: 'border-orange-200'   }
-      : { label: 'Critical Risk', color: '#ef4444', bg: 'bg-red-50',      text: 'text-red-700',      border: 'border-red-200'      };
+      ? { label: t.risk.lowRisk,      color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-300',  border: 'border-emerald-200 dark:border-emerald-800'  }
+      : score >= 40
+      ? { label: t.risk.moderateRisk, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/30',    text: 'text-amber-700 dark:text-amber-300',    border: 'border-amber-200 dark:border-amber-800'    }
+      : { label: t.risk.highRisk,     color: '#ef4444', bg: 'bg-red-50 dark:bg-red-900/30',      text: 'text-red-700 dark:text-red-300',      border: 'border-red-200 dark:border-red-800'      };
 
   // SVG arc parameters for the gauge
   const radius = 54;
@@ -76,10 +76,10 @@ export function FinancialHealthCard({ analysis }: FinancialHealthCardProps) {
   return (
     <div className="space-y-5">
       {/* Industry model badge */}
-      <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+      <div className="flex items-center gap-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-2">
         <span className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
-        <p className="text-xs text-blue-700">
-          <span className="font-semibold">Industry Risk Model Applied:</span>{' '}
+        <p className="text-xs text-blue-700 dark:text-blue-300">
+          <span className="font-semibold">{t.health.industryModelApplied}</span>{' '}
           {modelName}
         </p>
       </div>
@@ -122,23 +122,23 @@ export function FinancialHealthCard({ analysis }: FinancialHealthCardProps) {
 
       {/* Metric breakdown */}
       <div className="text-center space-y-1">
-        <p className="text-xs text-gray-500 uppercase tracking-wide">Financial Health Score</p>
-        <p className="text-sm text-gray-600 leading-snug max-w-xs mx-auto">
-          Higher score = healthier business. Weighted composite: {weightLabel}
+        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center justify-center gap-1">{t.health.healthScore} <InfoTooltip text={t.health.healthScoreTooltip} /></p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 leading-snug max-w-xs mx-auto">
+          {t.health.healthScoreText} {weightLabel}
         </p>
       </div>
 
       {/* Bankruptcy Probability */}
       {probability !== null && (
         <div className={`rounded-xl border p-4 text-center ${tier.bg} ${tier.border}`}>
-          <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Bankruptcy Probability</p>
+          <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1 flex items-center justify-center gap-1">{t.health.bankruptcyProbability} <InfoTooltip text={t.health.bankruptcyTooltip} /></p>
           <p className={`text-3xl font-bold ${tier.text}`}>{probability.toFixed(0)}%</p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             {probability <= 10
-              ? 'Company is in the safe zone — very low distress signal.'
+              ? t.health.safeZone
               : probability <= 20
-              ? 'Grey zone — monitor key metrics closely.'
-              : 'Distress zone — immediate financial review recommended.'}
+              ? t.health.greyZone
+              : t.health.distressZone}
           </p>
         </div>
       )}

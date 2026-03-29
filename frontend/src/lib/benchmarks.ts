@@ -17,6 +17,9 @@ export interface IndustryBenchmark {
   debt_ratio: number;
   /** Typical Altman Z-Score range midpoint */
   altman_z_score: number;
+  // CHANGED: Added percentile bands for quartile classification
+  percentile_25: { profit_margin: number; liquidity_ratio: number; debt_ratio: number; altman_z_score: number };
+  percentile_75: { profit_margin: number; liquidity_ratio: number; debt_ratio: number; altman_z_score: number };
 }
 
 /**
@@ -31,6 +34,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 1.1,
     debt_ratio: 0.50,
     altman_z_score: 2.4,
+    percentile_25: { profit_margin: 8, liquidity_ratio: 0.8, debt_ratio: 0.60, altman_z_score: 1.9 },
+    percentile_75: { profit_margin: 20, liquidity_ratio: 1.5, debt_ratio: 0.40, altman_z_score: 3.0 },
   },
   restaurant: {
     label: 'Restaurants',
@@ -38,6 +43,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 0.9,
     debt_ratio: 0.55,
     altman_z_score: 2.1,
+    percentile_25: { profit_margin: 2, liquidity_ratio: 0.6, debt_ratio: 0.65, altman_z_score: 1.6 },
+    percentile_75: { profit_margin: 12, liquidity_ratio: 1.3, debt_ratio: 0.45, altman_z_score: 2.7 },
   },
   food: {
     label: 'Food & Beverage',
@@ -45,6 +52,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 1.1,
     debt_ratio: 0.48,
     altman_z_score: 2.3,
+    percentile_25: { profit_margin: 4, liquidity_ratio: 0.8, debt_ratio: 0.58, altman_z_score: 1.8 },
+    percentile_75: { profit_margin: 14, liquidity_ratio: 1.5, debt_ratio: 0.38, altman_z_score: 2.9 },
   },
   retail: {
     label: 'Retail',
@@ -52,6 +61,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 1.3,
     debt_ratio: 0.45,
     altman_z_score: 2.3,
+    percentile_25: { profit_margin: 2, liquidity_ratio: 0.9, debt_ratio: 0.55, altman_z_score: 1.8 },
+    percentile_75: { profit_margin: 10, liquidity_ratio: 1.8, debt_ratio: 0.35, altman_z_score: 3.0 },
   },
   tech: {
     label: 'Technology',
@@ -59,6 +70,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 2.0,
     debt_ratio: 0.30,
     altman_z_score: 3.2,
+    percentile_25: { profit_margin: 10, liquidity_ratio: 1.4, debt_ratio: 0.40, altman_z_score: 2.5 },
+    percentile_75: { profit_margin: 28, liquidity_ratio: 3.0, debt_ratio: 0.20, altman_z_score: 4.0 },
   },
   software: {
     label: 'Software',
@@ -66,6 +79,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 2.5,
     debt_ratio: 0.25,
     altman_z_score: 3.5,
+    percentile_25: { profit_margin: 14, liquidity_ratio: 1.8, debt_ratio: 0.35, altman_z_score: 2.8 },
+    percentile_75: { profit_margin: 32, liquidity_ratio: 3.5, debt_ratio: 0.15, altman_z_score: 4.5 },
   },
   manufactur: {
     label: 'Manufacturing',
@@ -73,6 +88,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 1.5,
     debt_ratio: 0.50,
     altman_z_score: 2.5,
+    percentile_25: { profit_margin: 4, liquidity_ratio: 1.0, debt_ratio: 0.60, altman_z_score: 2.0 },
+    percentile_75: { profit_margin: 14, liquidity_ratio: 2.0, debt_ratio: 0.40, altman_z_score: 3.2 },
   },
   health: {
     label: 'Healthcare',
@@ -80,6 +97,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 1.6,
     debt_ratio: 0.40,
     altman_z_score: 2.8,
+    percentile_25: { profit_margin: 5, liquidity_ratio: 1.1, debt_ratio: 0.50, altman_z_score: 2.2 },
+    percentile_75: { profit_margin: 16, liquidity_ratio: 2.2, debt_ratio: 0.30, altman_z_score: 3.5 },
   },
   'real estate': {
     label: 'Real Estate',
@@ -87,6 +106,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 0.8,
     debt_ratio: 0.65,
     altman_z_score: 1.9,
+    percentile_25: { profit_margin: 12, liquidity_ratio: 0.5, debt_ratio: 0.75, altman_z_score: 1.4 },
+    percentile_75: { profit_margin: 30, liquidity_ratio: 1.2, debt_ratio: 0.55, altman_z_score: 2.5 },
   },
   logistics: {
     label: 'Logistics & Transport',
@@ -94,6 +115,8 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     liquidity_ratio: 1.1,
     debt_ratio: 0.52,
     altman_z_score: 2.2,
+    percentile_25: { profit_margin: 2, liquidity_ratio: 0.7, debt_ratio: 0.62, altman_z_score: 1.7 },
+    percentile_75: { profit_margin: 10, liquidity_ratio: 1.6, debt_ratio: 0.42, altman_z_score: 2.8 },
   },
 };
 
@@ -104,6 +127,8 @@ const DEFAULT_BENCHMARK: IndustryBenchmark = {
   liquidity_ratio: 1.2,
   debt_ratio: 0.45,
   altman_z_score: 2.5,
+  percentile_25: { profit_margin: 4, liquidity_ratio: 0.8, debt_ratio: 0.55, altman_z_score: 1.9 },
+  percentile_75: { profit_margin: 18, liquidity_ratio: 2.0, debt_ratio: 0.35, altman_z_score: 3.2 },
 };
 
 /**

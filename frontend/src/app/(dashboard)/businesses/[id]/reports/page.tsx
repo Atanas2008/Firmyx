@@ -12,6 +12,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { analysisApi, businessApi, reportApi } from '@/lib/api';
+import { useLanguage } from '@/hooks/useLanguage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +22,7 @@ import type { Business, Report, RiskAnalysis } from '@/types';
 
 export default function ReportsPage() {
   const { id } = useParams<{ id: string }>();
+  const { language, t } = useLanguage();
   const [business, setBusiness] = useState<Business | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [analyses, setAnalyses] = useState<RiskAnalysis[]>([]);
@@ -71,12 +73,12 @@ export default function ReportsPage() {
     setSuccessMsg('');
     try {
       await reportApi.generate(id, selectedAnalysisId || undefined);
-      setSuccessMsg('Report generated successfully!');
+      setSuccessMsg(t.reports.reportGenerated);
       await loadData();
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Failed to generate report. Ensure an analysis exists.';
+          ?.detail ?? t.reports.failedToGenerate;
       setErrorMsg(msg);
     } finally {
       setGenerating(false);
@@ -92,7 +94,7 @@ export default function ReportsPage() {
       const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = `firmshield-report-${reportId}.pdf`;
+      link.download = `firmyx-report-${reportId}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -100,7 +102,7 @@ export default function ReportsPage() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Failed to download report.';
+          ?.detail ?? t.reports.failedToDownload;
       setErrorMsg(msg);
     } finally {
       setDownloadingReportId(null);
@@ -112,29 +114,29 @@ export default function ReportsPage() {
   return (
     <div>
       <PageHeader
-        title="Reports"
+        title={t.reports.title}
         description={business?.name ?? ''}
         breadcrumbs={[
-          { label: 'Businesses', href: '/businesses' },
+          { label: t.nav.businesses, href: '/businesses' },
           { label: business?.name ?? 'Business', href: `/businesses/${id}` },
-          { label: 'Reports' },
+          { label: t.nav.reports },
         ]}
         actions={
           <div className="flex items-center gap-2">
             <select
               value={selectedAnalysisId}
               onChange={(e) => setSelectedAnalysisId(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={analyses.length === 0 || generating}
             >
               {analyses.length === 0 ? (
-                <option value="">No analyses available</option>
+                <option value="">{t.reports.noAnalysesAvailable}</option>
               ) : (
                 analyses.map((analysis) => {
                   const label =
                     analysis.analysis_scope === 'combined'
-                      ? `Combined • ${formatDate(analysis.created_at)}`
-                      : `${monthName(analysis.period_month ?? 1)} ${analysis.period_year ?? ''} • ${formatDate(analysis.created_at)}`;
+                      ? `Combined • ${formatDate(analysis.created_at, language)}`
+                      : `${monthName(analysis.period_month ?? 1)} ${analysis.period_year ?? ''} • ${formatDate(analysis.created_at, language)}`;
                   return (
                     <option key={analysis.id} value={analysis.id}>
                       {label}
@@ -145,19 +147,19 @@ export default function ReportsPage() {
             </select>
             <Button onClick={handleGenerate} loading={generating} disabled={analyses.length === 0 || !selectedAnalysisId}>
               <Plus className="h-4 w-4" />
-              Generate Report
+              {t.reports.generate}
             </Button>
           </div>
         }
       />
 
       {/* Navigation tabs */}
-      <div className="mb-6 flex gap-1 border-b border-gray-200">
+      <div className="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700">
         {[
-          { label: 'Overview', href: `/businesses/${id}`, icon: Building2 },
-          { label: 'Financials', href: `/businesses/${id}/financials`, icon: DollarSign },
-          { label: 'Analysis', href: `/businesses/${id}/analysis`, icon: BarChart3 },
-          { label: 'Reports', href: `/businesses/${id}/reports`, icon: FileText },
+          { label: t.nav.overview, href: `/businesses/${id}`, icon: Building2 },
+          { label: t.nav.financials, href: `/businesses/${id}/financials`, icon: DollarSign },
+          { label: t.nav.analysis, href: `/businesses/${id}/analysis`, icon: BarChart3 },
+          { label: t.nav.reports, href: `/businesses/${id}/reports`, icon: FileText },
         ].map(({ label, href, icon: Icon }) => (
           <Link
             key={href}
@@ -165,7 +167,7 @@ export default function ReportsPage() {
             className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               href === `/businesses/${id}/reports`
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-blue-300 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             <Icon className="h-4 w-4" />
@@ -175,12 +177,12 @@ export default function ReportsPage() {
       </div>
 
       {successMsg && (
-        <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
+        <div className="mb-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
           {successMsg}
         </div>
       )}
       {errorMsg && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {errorMsg}
         </div>
       )}
@@ -188,37 +190,41 @@ export default function ReportsPage() {
       {reports.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center py-14 text-center">
-            <FileText className="mb-4 h-14 w-14 text-gray-300" />
-            <h3 className="text-lg font-semibold text-gray-700">
-              No reports yet
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-900/30 mb-4">
+              <FileText className="h-8 w-8 text-blue-500 dark:text-blue-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+              {t.reports.noReportsYet}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Select any available month analysis (or combined analysis) and generate a report.
+            <p className="mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+              {analyses.length === 0
+                ? t.reports.noAnalysisForReport
+                : t.reports.selectAnalysisHint}}
             </p>
-            <Button className="mt-4" onClick={handleGenerate} loading={generating} disabled={analyses.length === 0 || !selectedAnalysisId}>
+            <Button className="mt-5" onClick={handleGenerate} loading={generating} disabled={analyses.length === 0 || !selectedAnalysisId}>
               <Plus className="h-4 w-4" />
-              Generate First Report
+              {t.reports.generateFirst}
             </Button>
           </div>
         </Card>
       ) : (
         <Card title={`Reports (${reports.length})`}>
-          <ul className="divide-y divide-gray-100 -mx-6 -mb-5">
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800 -mx-6 -mb-5">
             {reports.map((r) => (
               <li
                 key={r.id}
                 className="flex items-center justify-between px-6 py-4"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
-                    <FileText className="h-4 w-4 text-blue-600" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                    <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900 capitalize">
-                      {r.report_type.replace(/_/g, ' ')} Report
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-50 capitalize">
+                      {r.report_type.replace(/_/g, ' ')} {t.reports.report}
                     </p>
-                    <p className="text-xs text-gray-400">
-                      Generated {formatDate(r.created_at)}
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {t.reports.generated} {formatDate(r.created_at, language)}
                     </p>
                   </div>
                 </div>
@@ -226,10 +232,10 @@ export default function ReportsPage() {
                   type="button"
                   onClick={() => handleDownload(r.id)}
                   disabled={downloadingReportId === r.id}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  {downloadingReportId === r.id ? 'Downloading...' : 'Download'}
+                  {downloadingReportId === r.id ? t.reports.downloading : t.reports.download}
                 </button>
               </li>
             ))}

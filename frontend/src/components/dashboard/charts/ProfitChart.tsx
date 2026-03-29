@@ -11,6 +11,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { monthName, formatCurrency } from '@/lib/utils';
+import { useTheme } from '@/hooks/useTheme';
 import type { FinancialRecord } from '@/types';
 
 interface ProfitChartProps {
@@ -18,9 +19,12 @@ interface ProfitChartProps {
 }
 
 export function ProfitChart({ records }: ProfitChartProps) {
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme === 'dark';
+
   if (!records || records.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+      <div className="flex h-48 items-center justify-center text-sm text-gray-400 dark:text-gray-500">
         No financial data available
       </div>
     );
@@ -40,15 +44,15 @@ export function ProfitChart({ records }: ProfitChartProps) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke={dark ? '#374151' : '#f0f0f0'} />
         <XAxis
           dataKey="name"
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: dark ? '#9ca3af' : undefined }}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: dark ? '#9ca3af' : undefined }}
           tickLine={false}
           axisLine={false}
           tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
@@ -57,11 +61,13 @@ export function ProfitChart({ records }: ProfitChartProps) {
           formatter={(value: number) => [formatCurrency(value), 'Profit']}
           contentStyle={{
             borderRadius: '8px',
-            border: '1px solid #e5e7eb',
+            border: dark ? '1px solid #374151' : '1px solid #e5e7eb',
+            backgroundColor: dark ? '#1f2937' : '#fff',
+            color: dark ? '#f9fafb' : undefined,
             fontSize: 12,
           }}
         />
-        <ReferenceLine y={0} stroke="#e5e7eb" />
+        <ReferenceLine y={0} stroke={dark ? '#374151' : '#e5e7eb'} />
         <Line
           type="monotone"
           dataKey="Profit"

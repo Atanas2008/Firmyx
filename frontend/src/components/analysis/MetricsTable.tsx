@@ -1,3 +1,5 @@
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { useLanguage } from '@/hooks/useLanguage';
 import { formatCurrency, formatPercent } from '@/lib/utils';
 import type { RiskAnalysis } from '@/types';
 
@@ -14,10 +16,10 @@ interface MetricRow {
 
 function statusColor(status: 'good' | 'warn' | 'bad' | 'neutral'): string {
   switch (status) {
-    case 'good': return 'text-emerald-600 bg-emerald-50';
-    case 'warn': return 'text-amber-600 bg-amber-50';
-    case 'bad': return 'text-red-600 bg-red-50';
-    case 'neutral': return 'text-gray-600 bg-gray-100';
+    case 'good': return 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30';
+    case 'warn': return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30';
+    case 'bad': return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30';
+    case 'neutral': return 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700';
   }
 }
 
@@ -29,54 +31,59 @@ function trendArrow(value: number): string {
 }
 
 export function MetricsTable({ analysis }: MetricsTableProps) {
+  const { t } = useLanguage();
   const isRunwayNotApplicable =
     analysis.cash_runway_months === null;
 
   const rows: MetricRow[] = [
     {
-      label: 'Profit Margin',
+      label: t.metrics.profitMargin,
       value: formatPercent(analysis.profit_margin),
       status: analysis.profit_margin >= 10 ? 'good' : analysis.profit_margin >= 0 ? 'warn' : 'bad',
-      description: 'Percentage of revenue left after expenses',
+      description: t.metrics.profitMarginDesc,
     },
     {
-      label: 'Burn Rate',
+      label: t.metrics.burnRate,
       value: formatCurrency(analysis.burn_rate),
-      status: analysis.burn_rate < 10000 ? 'good' : analysis.burn_rate < 50000 ? 'warn' : 'bad',
-      description: 'Monthly cash being consumed above revenue',
+      status: analysis.burn_rate === 0 ? 'good' : analysis.burn_rate < 50000 ? 'warn' : 'bad',
+      description: t.metrics.burnRateDesc,
     },
     {
-      label: 'Cash Runway',
-      value: isRunwayNotApplicable
-        ? 'N/A'
-        : `${analysis.cash_runway_months!.toFixed(1)} months`,
-      status: isRunwayNotApplicable
+      label: t.metrics.cashRunway,
+      value: analysis.burn_rate === 0
+        ? t.metrics.notAtRisk
+        : isRunwayNotApplicable
+        ? t.common.notApplicable
+        : `${analysis.cash_runway_months!.toFixed(1)} ${t.common.months}`,
+      status: analysis.burn_rate === 0
+        ? 'good'
+        : isRunwayNotApplicable
         ? 'neutral'
         : analysis.cash_runway_months! >= 12
         ? 'good'
         : analysis.cash_runway_months! >= 6
         ? 'warn'
         : 'bad',
-      description: 'How long reserves last at current expense rate',
+      description: t.metrics.cashRunwayDesc,
     },
     {
-      label: 'Debt Ratio',
+      label: t.metrics.debtRatio,
       value: formatPercent(analysis.debt_ratio * 100),
       status: analysis.debt_ratio < 0.4 ? 'good' : analysis.debt_ratio < 0.7 ? 'warn' : 'bad',
-      description: 'Total debt relative to estimated assets',
+      description: t.metrics.debtRatioDesc,
     },
     {
-      label: 'Liquidity Ratio',
+      label: t.metrics.liquidityRatio,
       value: analysis.liquidity_ratio.toFixed(2),
       status: analysis.liquidity_ratio >= 2 ? 'good' : analysis.liquidity_ratio >= 1 ? 'warn' : 'bad',
-      description: 'Ability to cover short-term obligations',
+      description: t.metrics.liquidityRatioDesc,
     },
     {
-      label: 'Revenue Trend',
+      label: t.metrics.revenueTrend,
       value: analysis.revenue_trend === null
-        ? 'N/A'
+        ? t.common.notApplicable
         : analysis.revenue_trend === 0
-        ? 'Stable'
+        ? t.metrics.stable
         : `${trendArrow(analysis.revenue_trend)}${formatPercent(analysis.revenue_trend * 100)}`,
       status: analysis.revenue_trend === null
         ? 'neutral'
@@ -85,13 +92,13 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
         : analysis.revenue_trend >= 0
         ? 'warn'
         : 'bad',
-      description: 'Month-over-month revenue growth',
+      description: t.metrics.revenueTrendDesc,
     },
     {
-      label: 'Expense Trend',
+      label: t.metrics.expenseTrend,
       value: analysis.expense_trend !== null
         ? `${trendArrow(analysis.expense_trend)}${formatPercent(analysis.expense_trend * 100)}`
-        : 'N/A',
+        : t.common.notApplicable,
       status: analysis.expense_trend === null
         ? 'neutral'
         : analysis.expense_trend * 100 <= 5
@@ -99,42 +106,43 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
         : analysis.expense_trend * 100 <= 15
         ? 'warn'
         : 'bad',
-      description: 'Month-over-month expense growth',
+      description: t.metrics.expenseTrendDesc,
     },
     {
-      label: 'Altman Z-Score',
+      label: t.metrics.altmanZScore,
       value: analysis.altman_z_score.toFixed(2),
       status: analysis.altman_z_score >= 2.99 ? 'good' : analysis.altman_z_score >= 1.81 ? 'warn' : 'bad',
-      description: 'Bankruptcy prediction score (>2.99 safe)',
+      description: t.metrics.altmanZScoreDesc,
     },
   ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200">
+    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50">
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-              Metric
+          <tr className="bg-gray-50 dark:bg-gray-800">
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              {t.metrics.metric}
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-              Value
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide hidden sm:table-cell">
-              Description
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              {t.metrics.value}
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
           {rows.map((row) => (
-            <tr key={row.label} className="bg-white hover:bg-gray-50 transition-colors">
-              <td className="px-4 py-3 font-medium text-gray-900">{row.label}</td>
+            <tr key={row.label} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-50">
+                <span className="flex items-center gap-1">
+                  {row.label}
+                  <InfoTooltip text={row.description} />
+                </span>
+              </td>
               <td className="px-4 py-3">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusColor(row.status)}`}>
                   {row.value}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{row.description}</td>
             </tr>
           ))}
         </tbody>

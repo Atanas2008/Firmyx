@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/Badge';
-import { riskLabel } from '@/lib/utils';
+import { useLanguage } from '@/hooks/useLanguage';
 import type { RiskAnalysis } from '@/types';
 
 interface RiskIndicatorProps {
@@ -8,9 +8,11 @@ interface RiskIndicatorProps {
 }
 
 export function RiskIndicator({ riskLevel, className }: RiskIndicatorProps) {
+  const { t } = useLanguage();
+  const label = t.risk[riskLevel as keyof typeof t.risk] ?? t.risk.unknown;
   return (
     <Badge variant={riskLevel} className={className}>
-      {riskLabel(riskLevel)}
+      {label}
     </Badge>
   );
 }
