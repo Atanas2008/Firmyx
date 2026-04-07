@@ -94,24 +94,31 @@ def simulate_scenario(
     original_record = _build_record(base_financials)
     original_result = engine.analyze(original_record, previous=None, industry=industry)
 
-    # -- Apply adjustments --
+    # -- Apply adjustments with realism constraints --
     adj = dict(base_financials)  # shallow copy
 
-    # Revenue adjustments
-    rev_pct = adjustments.get("revenue_change_pct", 0) / 100.0
+    # Revenue adjustments — cap at ±50% to prevent unrealistic jumps
+    rev_pct = max(-50, min(50, adjustments.get("revenue_change_pct", 0))) / 100.0
     rev_abs = adjustments.get("revenue_change_abs", 0)
     adj["revenue"] = adj.get("revenue", 0) * (1 + rev_pct) + rev_abs
 
-    # Expense adjustments
+    # Expense adjustments — cap cost reduction at 40%
     exp_pct = adjustments.get("expense_change_pct", 0) / 100.0
     exp_abs = adjustments.get("expense_change_abs", 0)
-    cost_red_pct = adjustments.get("cost_reduction_pct", 0) / 100.0
+    cost_red_pct = min(40, adjustments.get("cost_reduction_pct", 0)) / 100.0
     adj["expenses"] = adj.get("expenses", 0) * (1 + exp_pct) + exp_abs
     adj["expenses"] = adj["expenses"] * (1 - cost_red_pct)
 
-    # Debt and cash adjustments
+    # Debt and cash adjustments — debt reduction requires available cash
     debt_abs = adjustments.get("debt_change_abs", 0)
     cash_abs = adjustments.get("cash_change_abs", 0)
+    if debt_abs < 0:
+        # Debt reduction — cash must fund it unless offset by a cash injection
+        net_cash_effect = cash_abs + debt_abs  # debt_abs is negative
+        if net_cash_effect < -adj.get("cash_reserves", 0):
+            # Can't reduce more debt than cash available; constrain
+            max_reduction = adj.get("cash_reserves", 0) + max(cash_abs, 0)
+            debt_abs = max(debt_abs, -max_reduction)
     adj["debt"] = max(adj.get("debt", 0) + debt_abs, 0)
     adj["cash_reserves"] = max(adj.get("cash_reserves", 0) + cash_abs, 0)
 
@@ -171,6 +178,7 @@ def simulate_scenario(
         "adjusted": adjusted_dict,
         "comparison": comparison,
         "summary": summary,
+        "disclaimer": "Scenario assumes simplified adjustments for modeling purposes; real-world changes involve time lags and side effects.",
     }
 
 
@@ -201,7 +209,9 @@ def _generate_summary(original: dict, adjusted: dict, comparison: dict) -> str:
         health_part = f", {direction} health score by {abs(health_delta):.1f} points"
 
     return (
-        f"This scenario affects {better_count} of {total} metrics {tone}{health_part}."
+        f"This scenario affects {better_count} of {total} metrics {tone}{health_part}. "
+        "Scenario assumes simplified adjustments for modeling purposes; "
+        "real-world changes involve time lags and side effects."
     )
 
 

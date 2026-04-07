@@ -3,6 +3,7 @@
 import { FileText, Briefcase } from 'lucide-react';
 import { generateAllInsights } from '@/lib/aiInsights';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { RiskAnalysis } from '@/types';
 
 interface ExecutiveSummaryCardProps {
@@ -13,6 +14,7 @@ interface ExecutiveSummaryCardProps {
 export function ExecutiveSummaryCard({ analysis, businessName }: ExecutiveSummaryCardProps) {
   const { language, t } = useLanguage();
   const insights = generateAllInsights(analysis);
+  const { translated: translatedSummary } = useTranslation([insights.executiveSummary]);
 
   const verdictStyles = {
     strong:   { accent: 'border-l-emerald-500', tagBg: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',  label: t.executive.positionStrong       },
@@ -50,7 +52,7 @@ export function ExecutiveSummaryCard({ analysis, businessName }: ExecutiveSummar
 
       {/* Executive text body */}
       <div className={`rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 border-l-4 ${style.accent}`}>
-        <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{insights.executiveSummary}</p>
+        <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{translatedSummary[0] || insights.executiveSummary}</p>
       </div>
 
       {/* Scorecard strip */}

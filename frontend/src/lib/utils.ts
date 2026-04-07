@@ -28,14 +28,19 @@ export function monthName(month: number): string {
 }
 
 export function riskColor(
-  level: 'safe' | 'moderate_risk' | 'high_risk' | string
+  level: 'safe' | 'moderate_risk' | 'high_risk' | 'low' | 'medium' | 'high' | 'critical' | string
 ): string {
   switch (level) {
     case 'safe':
+    case 'low':
       return 'text-emerald-600';
     case 'moderate_risk':
+    case 'medium':
       return 'text-amber-600';
     case 'high_risk':
+    case 'high':
+      return 'text-orange-600';
+    case 'critical':
       return 'text-red-600';
     default:
       return 'text-gray-600';
@@ -43,14 +48,19 @@ export function riskColor(
 }
 
 export function riskBg(
-  level: 'safe' | 'moderate_risk' | 'high_risk' | string
+  level: 'safe' | 'moderate_risk' | 'high_risk' | 'low' | 'medium' | 'high' | 'critical' | string
 ): string {
   switch (level) {
     case 'safe':
+    case 'low':
       return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
     case 'moderate_risk':
+    case 'medium':
       return 'bg-amber-50 text-amber-700 ring-amber-200';
     case 'high_risk':
+    case 'high':
+      return 'bg-orange-50 text-orange-700 ring-orange-200';
+    case 'critical':
       return 'bg-red-50 text-red-700 ring-red-200';
     default:
       return 'bg-gray-50 text-gray-700 ring-gray-200';
@@ -58,37 +68,45 @@ export function riskBg(
 }
 
 export function riskLabel(
-  level: 'safe' | 'moderate_risk' | 'high_risk' | string
+  level: 'safe' | 'moderate_risk' | 'high_risk' | 'low' | 'medium' | 'high' | 'critical' | string
 ): string {
   switch (level) {
     case 'safe':
+    case 'low':
       return 'Low Risk';
     case 'moderate_risk':
-      return 'Moderate Risk';
+    case 'medium':
+      return 'Medium Risk';
     case 'high_risk':
+    case 'high':
       return 'High Risk';
+    case 'critical':
+      return 'Critical Risk';
     default:
       return 'Unknown';
   }
 }
 
 const SAFE_THRESHOLD = 30;
-const MODERATE_THRESHOLD = 60;
+const MODERATE_THRESHOLD = 50;
+const HIGH_THRESHOLD = 70;
 
 export function scoreColor(score: number): string {
-  if (score <= 30) return '#10b981'; // emerald — Low Risk
-  if (score <= 60) return '#f59e0b'; // amber   — Moderate Risk
-  return '#ef4444';                  // red     — High Risk
+  if (score <= 30) return '#10b981'; // emerald  — Low Risk
+  if (score <= 50) return '#f59e0b'; // amber    — Medium Risk
+  if (score <= 70) return '#f97316'; // orange   — High Risk
+  return '#ef4444';                  // red      — Critical Risk
 }
 
 /**
- * Derives a human-readable 3-tier risk label directly from the numeric risk score.
- * Matches the FinancialHealthCard inverse tiers (health_score = 100 - risk_score).
+ * Derives a human-readable 4-tier risk label directly from the numeric risk score.
+ * Matches the v5.0 scoring model: low ≤ 30, medium ≤ 50, high ≤ 70, critical > 70.
  */
 export function scoreTierLabel(score: number): string {
   if (score <= 30) return 'Low Risk';
-  if (score <= 60) return 'Moderate Risk';
-  return 'High Risk';
+  if (score <= 50) return 'Medium Risk';
+  if (score <= 70) return 'High Risk';
+  return 'Critical Risk';
 }
 
 export function formatDate(dateString: string, locale: string = 'en-US'): string {

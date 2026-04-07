@@ -1,30 +1,70 @@
 import os
-from fastapi import FastAPI
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
+from app.logging_config import logger
 from app.middleware.rate_limiter import limiter
+from app.middleware.security import SecurityHeadersMiddleware, RequestLoggingMiddleware
 from app.routers import auth, businesses, financial_records, analysis, reports, translate
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup / shutdown lifecycle."""
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    os.makedirs(settings.REPORTS_DIR, exist_ok=True)
+
+    if settings.SECRET_KEY in ("change-this-secret-key-in-production", "your-very-secret-key-change-in-production"):
+        logger.warning("⚠️  Using default SECRET_KEY — set a secure key in .env for production!")
+
+    logger.info("Firmyx API starting (env=%s)", settings.ENVIRONMENT)
+    yield
+    logger.info("Firmyx API shutting down")
+
 
 app = FastAPI(
     title="Firmyx API",
-    description="Backend API for Firmyx - Financial Risk Detection Platform",
+    description="Backend API for Firmyx — Financial Risk Detection Platform",
     version="1.0.0",
+    docs_url="/docs" if not settings.is_production else None,
+    redoc_url="/redoc" if not settings.is_production else None,
+    lifespan=lifespan,
 )
 
+# ─── Middleware (order matters: last added = first executed) ───────────────────
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
+
+# ─── Global exception handler ────────────────────────────────────────────────
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred."},
+    )
+
+
+# ─── Routes ──────────────────────────────────────────────────────────────────
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(businesses.router, prefix="/api/businesses", tags=["Businesses"])
 app.include_router(financial_records.router, prefix="/api/businesses", tags=["Financial Records"])
@@ -32,13 +72,10 @@ app.include_router(analysis.router, prefix="/api/businesses", tags=["Analysis"])
 app.include_router(reports.router, prefix="/api/businesses", tags=["Reports"])
 app.include_router(translate.router, prefix="/api", tags=["Translation"])
 
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-os.makedirs(settings.REPORTS_DIR, exist_ok=True)
-
 
 @app.get("/", tags=["Health"])
 def root():
-    return {"status": "ok", "service": "Firmyx API"}
+    return {"status": "ok", "service": "Firmyx API", "version": "1.0.0"}
 
 
 @app.get("/health", tags=["Health"])

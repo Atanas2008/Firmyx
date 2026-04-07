@@ -1,12 +1,16 @@
-"""Financial Forecasting Engine.
+"""Financial Forecasting Engine v3.0.
 
 Projects financial metrics 12 months forward based on current data and trends.
-All calculations are deterministic — no randomness or external API calls.
+v3.0 changes:
+- Returns all 3 scenarios (best/base/worst) simultaneously
+- Adds monthly variability so projections aren't perfectly smooth lines
+- Risk-adjusted volatility: higher risk = more volatile forecasts
 """
 
 from __future__ import annotations
 
 import calendar
+import math
 
 # Scenario trend modifiers: (revenue_multiplier, expense_multiplier)
 SCENARIO_MODIFIERS: dict[str, tuple[float, float]] = {
@@ -14,6 +18,18 @@ SCENARIO_MODIFIERS: dict[str, tuple[float, float]] = {
     "optimistic": (1.5, 0.5),
     "pessimistic": (0.5, 1.5),
 }
+
+
+def _monthly_variability(month: int, seed: float, amplitude: float) -> float:
+    """Deterministic pseudo-random variability using sine waves.
+    
+    Produces consistent ripple without external randomness,
+    making forecasts reproducible but not artificially smooth.
+    """
+    # Combine two sine waves at different frequencies for natural-looking variation
+    v1 = math.sin(month * 1.7 + seed * 3.14) * amplitude
+    v2 = math.sin(month * 0.8 + seed * 2.17) * amplitude * 0.5
+    return v1 + v2
 
 
 def calculate_forecast(
@@ -27,29 +43,12 @@ def calculate_forecast(
     scenario: str = "baseline",
     period_month: int | None = None,
     period_year: int | None = None,
+    risk_score: float = 30.0,
 ) -> list[dict]:
     """Return a list of monthly projections for the next *months* periods.
 
-    Each entry contains:
-      - month              (1..months)
-      - label              (human-readable, e.g. "Apr 2025")
-      - projected_revenue
-      - projected_expenses
-      - projected_profit   (revenue − expenses)
-      - projected_cash_balance (running total)
-      - projected_risk_score   (simplified 0–100 score)
-      - burn_rate          (monthly cash usage when unprofitable)
-      - runway_months      (months of cash left at current burn)
-
-    Model:
-      rev[m]  = rev[m-1] × (1 + adjusted_revenue_trend)
-      exp[m]  = exp[m-1] × (1 + adjusted_expense_trend)
-      cash[m] = cash[m-1] + profit[m] − monthly_debt_service
-
-    Scenario modifiers adjust the base trends:
-      baseline:    trends used as-is
-      optimistic:  revenue_trend × 1.5, expense_trend × 0.5
-      pessimistic: revenue_trend × 0.5, expense_trend × 1.5
+    v3.0: Accepts risk_score to calibrate forecast volatility.
+    Higher risk = more variance in projections (reflecting uncertainty).
     """
     rev_trend = revenue_trend if revenue_trend is not None else 0.0
     exp_trend = expense_trend if expense_trend is not None else 0.0
@@ -59,8 +58,15 @@ def calculate_forecast(
     rev_trend = rev_trend * rev_mult
     exp_trend = exp_trend * exp_mult
 
+    # Risk-adjusted volatility: higher risk = more monthly variance
+    # Range: 0.5% (low risk) to 4% (critical risk)
+    volatility = 0.005 + (risk_score / 100.0) * 0.035
+
     # Monthly debt service: 0.5 % of outstanding debt
     monthly_debt_service = debt * 0.005 if debt > 0 else 0.0
+
+    # Seed for deterministic variability (based on scenario)
+    seed = {"baseline": 1.0, "optimistic": 2.0, "pessimistic": 3.0}.get(scenario, 1.0)
 
     projections: list[dict] = []
     prev_rev = current_revenue
@@ -68,8 +74,17 @@ def calculate_forecast(
     prev_cash = cash_reserves
 
     for m in range(1, months + 1):
-        proj_rev = prev_rev * (1 + rev_trend)
-        proj_exp = prev_exp * (1 + exp_trend)
+        # Apply trend + deterministic monthly variability
+        rev_var = _monthly_variability(m, seed, volatility)
+        exp_var = _monthly_variability(m, seed + 5.0, volatility * 0.7)
+
+        proj_rev = prev_rev * (1 + rev_trend + rev_var)
+        proj_exp = prev_exp * (1 + exp_trend + exp_var)
+
+        # Ensure non-negative
+        proj_rev = max(0.0, proj_rev)
+        proj_exp = max(0.0, proj_exp)
+
         proj_profit = proj_rev - proj_exp
         proj_cash = prev_cash + proj_profit - monthly_debt_service
 
@@ -114,6 +129,42 @@ def calculate_forecast(
         prev_cash = proj_cash
 
     return projections
+
+
+def calculate_all_scenarios(
+    current_revenue: float,
+    current_expenses: float,
+    cash_reserves: float,
+    debt: float,
+    revenue_trend: float | None,
+    expense_trend: float | None,
+    months: int = 12,
+    period_month: int | None = None,
+    period_year: int | None = None,
+    risk_score: float = 30.0,
+) -> dict[str, list[dict]]:
+    """Return forecasts for all three scenarios simultaneously.
+
+    Returns:
+        dict with keys "baseline", "optimistic", "pessimistic",
+        each containing a list of monthly projections.
+    """
+    return {
+        scenario: calculate_forecast(
+            current_revenue=current_revenue,
+            current_expenses=current_expenses,
+            cash_reserves=cash_reserves,
+            debt=debt,
+            revenue_trend=revenue_trend,
+            expense_trend=expense_trend,
+            months=months,
+            scenario=scenario,
+            period_month=period_month,
+            period_year=period_year,
+            risk_score=risk_score,
+        )
+        for scenario in ("baseline", "optimistic", "pessimistic")
+    }
 
 
 def _month_label(offset: int, base_month: int | None, base_year: int | None) -> str:

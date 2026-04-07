@@ -10,6 +10,7 @@ import {
   Building2,
   DollarSign,
   BarChart3,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { analysisApi, businessApi, reportApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -159,6 +160,7 @@ export default function ReportsPage() {
           { label: t.nav.overview, href: `/businesses/${id}`, icon: Building2 },
           { label: t.nav.financials, href: `/businesses/${id}/financials`, icon: DollarSign },
           { label: t.nav.analysis, href: `/businesses/${id}/analysis`, icon: BarChart3 },
+          { label: t.nav.scenario, href: `/businesses/${id}/scenario`, icon: SlidersHorizontal },
           { label: t.nav.reports, href: `/businesses/${id}/reports`, icon: FileText },
         ].map(({ label, href, icon: Icon }) => (
           <Link
@@ -199,7 +201,7 @@ export default function ReportsPage() {
             <p className="mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
               {analyses.length === 0
                 ? t.reports.noAnalysisForReport
-                : t.reports.selectAnalysisHint}}
+                : t.reports.selectAnalysisHint}
             </p>
             <Button className="mt-5" onClick={handleGenerate} loading={generating} disabled={analyses.length === 0 || !selectedAnalysisId}>
               <Plus className="h-4 w-4" />

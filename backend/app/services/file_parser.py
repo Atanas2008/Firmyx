@@ -1,8 +1,13 @@
 import io
+import re
 from typing import List, Tuple
 import pandas as pd
 from fastapi import UploadFile, HTTPException, status
 from app.schemas.financial_record import FinancialRecordCreate
+
+# Characters that trigger formula execution in spreadsheet applications
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "|")
+_FORMULA_PATTERN = re.compile(r"^[=+\-@\t\r|]")
 
 # Required columns for per-month format (one row per month)
 REQUIRED_COLUMNS = {
@@ -114,6 +119,16 @@ class FileParser:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Could not parse file: {exc}",
             )
+
+        # Reject files with an excessive number of rows (DoS protection)
+        if len(df) > 5000:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File contains too many rows. Maximum 5,000 rows allowed.",
+            )
+
+        # Sanitize all string cells to prevent formula injection
+        self._sanitize_dataframe(df)
 
         # Normalize column names
         df.columns = [c.strip().lower() for c in df.columns]
@@ -252,6 +267,22 @@ class FileParser:
                 errors.append(f"Row {row_num}: {exc}")
 
         return records, errors
+
+    @staticmethod
+    def _sanitize_cell(value):
+        """Strip formula injection prefixes from string cell values."""
+        if isinstance(value, str) and _FORMULA_PATTERN.match(value):
+            return value.lstrip("=+\-@\t\r|").strip()
+        return value
+
+    @staticmethod
+    def _sanitize_dataframe(df: pd.DataFrame) -> None:
+        """In-place sanitize all string cells to prevent CSV formula injection."""
+        for col in df.columns:
+            if df[col].dtype == object:
+                df[col] = df[col].map(
+                    lambda v: v.lstrip("=+\-@\t\r|").strip() if isinstance(v, str) and _FORMULA_PATTERN.match(v) else v
+                )
 
     def _safe_decimal(self, value, row_num: int, field: str):
         """Convert a cell value to a decimal string, raising a clear error on failure."""

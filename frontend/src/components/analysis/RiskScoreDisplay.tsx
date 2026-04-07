@@ -2,6 +2,8 @@ import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard';
 import { RiskIndicator } from '@/components/dashboard/RiskIndicator';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from '@/hooks/useTranslation';
+import { buildValidatedMetrics } from '@/lib/aiInsights';
 import type { RiskAnalysis } from '@/types';
 import { formatDate } from '@/lib/utils';
 
@@ -11,8 +13,9 @@ interface RiskScoreDisplayProps {
 
 export function RiskScoreDisplay({ analysis }: RiskScoreDisplayProps) {
   const { language, t } = useLanguage();
-  const isRunwayNotApplicable =
-    analysis.cash_runway_months === null;
+  const metrics = buildValidatedMetrics(analysis);
+  const explanationTexts = analysis.risk_explanation ? [analysis.risk_explanation] : [];
+  const { translated: translatedExplanation } = useTranslation(explanationTexts);
 
   return (
     <div className="flex flex-col items-center gap-4 py-4 sm:flex-row sm:items-start sm:gap-8">
@@ -34,7 +37,7 @@ export function RiskScoreDisplay({ analysis }: RiskScoreDisplayProps) {
           <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{t.analysis.summary}</p>
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              {analysis.risk_explanation}
+              {translatedExplanation[0] || analysis.risk_explanation}
             </p>
           </div>
         )}
@@ -45,16 +48,28 @@ export function RiskScoreDisplay({ analysis }: RiskScoreDisplayProps) {
               {analysis.altman_z_score.toFixed(2)}
             </p>
           </div>
-          <div className="text-center rounded-lg border border-gray-100 dark:border-gray-800 p-3">
+          <div className={`text-center rounded-lg border p-3 ${metrics.is_working_capital_constrained || metrics.runway_label.includes('Limited') ? 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20' : 'border-gray-100 dark:border-gray-800'}`}>
             <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1">Runway <InfoTooltip text="How many months your cash reserves will last at your current monthly expense rate" /></p>
             <p className="mt-0.5 text-lg font-bold text-gray-900 dark:text-gray-50">
               {analysis.burn_rate === 0
-                ? t.metrics.notAtRisk
-                : isRunwayNotApplicable
-                ? t.common.notApplicable
-                : `${analysis.cash_runway_months!.toFixed(1)} mo`}
+                ? (metrics.is_working_capital_constrained ? 'WC'
+                  : metrics.runway_label.includes('Limited') ? 'Low'
+                  : 'CF+')
+                : analysis.cash_runway_months !== null
+                ? `${analysis.cash_runway_months.toFixed(1)} mo`
+                : t.common.notApplicable}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">{analysis.burn_rate === 0 ? t.metrics.cashFlowPositive : t.metrics.atCurrentBurnRate}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              {metrics.is_working_capital_constrained
+                ? t.metrics.workingCapitalConstrained
+                : analysis.burn_rate === 0
+                ? (metrics.runway_label.includes('Limited')
+                  ? metrics.runway_label
+                  : t.metrics.cashFlowPositive)
+                : metrics.runway_label.includes('critical')
+                ? t.metrics.runwayCritical
+                : t.metrics.atCurrentBurnRate}
+            </p>
           </div>
           <div className="text-center rounded-lg border border-gray-100 dark:border-gray-800 p-3">
             <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1">Profit Margin <InfoTooltip text="Percentage of revenue remaining after all expenses — higher is better" /></p>

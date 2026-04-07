@@ -8,6 +8,12 @@ from app.database import Base
 
 
 class RiskLevel(str, enum.Enum):
+    # v5.0 canonical values
+    low = "low"
+    medium = "medium"
+    high = "high"
+    critical = "critical"
+    # Legacy values (kept for existing records in DB)
     safe = "safe"
     moderate_risk = "moderate_risk"
     high_risk = "high_risk"

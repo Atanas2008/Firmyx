@@ -4,6 +4,9 @@ from typing import Optional
 from decimal import Decimal
 from pydantic import BaseModel, field_validator
 
+# Upper bound for any single financial field (prevents absurd values / overflow)
+_MAX_FINANCIAL_VALUE = Decimal("999_999_999_999.99")
+
 
 class FinancialRecordCreate(BaseModel):
     period_month: int
@@ -33,6 +36,17 @@ class FinancialRecordCreate(BaseModel):
     def validate_year(cls, v: int) -> int:
         if not 2000 <= v <= 2100:
             raise ValueError("period_year must be between 2000 and 2100")
+        return v
+
+    @field_validator(
+        "monthly_revenue", "monthly_expenses", "payroll", "rent", "debt",
+        "cash_reserves", "taxes", "cost_of_goods_sold", "total_assets",
+        "current_liabilities", "ebit", "retained_earnings",
+    )
+    @classmethod
+    def validate_financial_bounds(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        if v is not None and abs(v) > _MAX_FINANCIAL_VALUE:
+            raise ValueError(f"Value {v} exceeds maximum allowed magnitude of {_MAX_FINANCIAL_VALUE}")
         return v
 
 

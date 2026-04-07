@@ -1,77 +1,63 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
-from app.models.user import User
+from app.models.business import Business
 from app.schemas.financial_record import FinancialRecordCreate, FinancialRecordRead
-from app.repositories.business_repository import BusinessRepository
 from app.repositories.financial_record_repository import FinancialRecordRepository
-from app.services.auth_service import get_current_user
 from app.services.file_parser import FileParser
+from app.dependencies import get_owned_business
+from app.middleware.rate_limiter import limiter
 
 router = APIRouter()
 
 
-def _assert_business_owner(business_id: UUID, current_user: User, db: Session):
-    """Verify the business exists and belongs to the current user."""
-    business = BusinessRepository(db).get_by_id(business_id)
-    if not business:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
-    if business.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    return business
-
-
 @router.get("/{business_id}/records", response_model=List[FinancialRecordRead])
 def list_records(
-    business_id: UUID,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """List all financial records for a business, ordered by most recent period first."""
-    _assert_business_owner(business_id, current_user, db)
-    return FinancialRecordRepository(db).get_by_business(business_id)
+    return FinancialRecordRepository(db).get_by_business(business.id)
 
 
 @router.post("/{business_id}/records", response_model=FinancialRecordRead, status_code=status.HTTP_201_CREATED)
 def create_record(
-    business_id: UUID,
     data: FinancialRecordCreate,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Manually submit a financial record for a given month/year."""
-    _assert_business_owner(business_id, current_user, db)
-    return FinancialRecordRepository(db).create(business_id, data)
+    return FinancialRecordRepository(db).create(business.id, data)
 
 
 @router.delete("/{business_id}/records/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_record(
-    business_id: UUID,
     record_id: UUID,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Delete a single financial record by ID."""
-    _assert_business_owner(business_id, current_user, db)
     repo = FinancialRecordRepository(db)
     record = repo.get_by_id(record_id)
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found.")
-    if record.business_id != business_id:
+    if record.business_id != business.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
     repo.delete(record)
 
 
 @router.post("/{business_id}/records/upload", response_model=List[FinancialRecordRead], status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def upload_records(
-    business_id: UUID,
+    request: Request,
     file: UploadFile = File(...),
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Upload a CSV or Excel file containing financial records.
@@ -92,7 +78,32 @@ async def upload_records(
     Returns the list of created records. Row-level validation errors
     are returned in the response body under the 'errors' key via a 422 response.
     """
-    _assert_business_owner(business_id, current_user, db)
+    # Validate file type — only allow explicit CSV/Excel MIME types
+    allowed_types = {
+        "text/csv",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+    }
+    # Also validate by file extension as a defense-in-depth measure
+    filename = (file.filename or "").lower()
+    allowed_extensions = {".csv", ".xlsx", ".xls"}
+    ext = "." + filename.rsplit(".", 1)[-1] if "." in filename else ""
+
+    if file.content_type not in allowed_types or ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only CSV and Excel files are supported.",
+        )
+
+    # Validate file size
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    contents = await file.read()
+    if len(contents) > max_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large. Maximum size is {settings.MAX_UPLOAD_SIZE_MB}MB.",
+        )
+    await file.seek(0)
 
     parser = FileParser()
     records, errors = await parser.parse(file)
@@ -103,7 +114,7 @@ async def upload_records(
             detail={"message": "All rows failed validation.", "errors": errors},
         )
 
-    created = FinancialRecordRepository(db).create_bulk(business_id, records)
+    created = FinancialRecordRepository(db).create_bulk(business.id, records)
 
     if errors:
         # Partial success — return 207-like JSON with both results and errors

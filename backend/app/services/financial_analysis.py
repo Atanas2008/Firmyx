@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from app.models.financial_record import FinancialRecord
 
@@ -12,124 +12,113 @@ MONTHS_PER_YEAR = 12
 
 # Scoring model version — increment whenever the risk scoring formula changes
 # so the frontend can detect stale analysis records stored in the database.
-SCORING_MODEL_VERSION = "2.0"
+SCORING_MODEL_VERSION = "5.0"
 
 
 # ---------------------------------------------------------------------------
-# Industry-Specific Risk Weight Models
+# Industry-Specific Risk Weight Models  (v5.0)
 # ---------------------------------------------------------------------------
-# Different industries have fundamentally different financial structures.
-# A single fixed set of weights would produce misleading scores:
+# Weight keys: debtRatio → LEVERAGE, liquidity, profitMargin → PROFITABILITY,
+#              zScore → STABILITY (revenue variance), revenueTrend → GROWTH.
 #
-# - Technology / Software companies carry low debt and high margins, so
-#   profit margin and revenue growth are better predictors of health than
-#   solvency ratios (Z-Score).
+# v5.0 scoring uses deterministic step-functions instead of non-linear curves.
+# The Altman Z-Score is kept as a display metric but no longer drives the
+# risk score directly.  The "stability" component now measures revenue
+# volatility (coefficient of variation across available periods).
 #
-# - Restaurants / Food & Beverage operate on thin margins and high turnover;
-#   liquidity and insolvency risk (Z-Score) dominate.
-#
-# - Retail / Manufacturing are capital-intensive with moderate leverage;
-#   solvency (Z-Score) and liquidity matter most.
-#
-# Each dict maps metric name → weight (must sum to 1.0).
+# Each dict maps internal key → weight (must sum to 1.0).
 INDUSTRY_WEIGHTS: dict[str, dict[str, float]] = {
     # --- Tech & Software ---
-    # Z-Score and liquidity are elevated to catch distressed companies early,
-    # even in high-growth environments. Revenue trend remains a factor but
-    # no longer dominates — a growing startup burning cash must still register
-    # as risky.
+    # Low debt typical; profitability and growth are better risk predictors.
     "Technology": {
-        "zScore": 0.35,
-        "liquidity": 0.20,
-        "profitMargin": 0.20,
-        "debtRatio": 0.15,
-        "revenueTrend": 0.10,
-    },
-    "Software": {
-        "zScore": 0.35,
-        "liquidity": 0.20,
-        "profitMargin": 0.20,
-        "debtRatio": 0.15,
-        "revenueTrend": 0.10,
-    },
-    # --- Food, Beverage & Restaurants ---
-    # Thin margins and high operational costs make Z-Score and liquidity
-    # the most reliable early-warning signals for distress.
-    "Food & Beverage": {
-        "zScore": 0.25,
+        "debtRatio": 0.20,
         "liquidity": 0.20,
         "profitMargin": 0.25,
+        "zScore": 0.15,
+        "revenueTrend": 0.20,
+    },
+    "Software": {
         "debtRatio": 0.20,
+        "liquidity": 0.20,
+        "profitMargin": 0.25,
+        "zScore": 0.15,
+        "revenueTrend": 0.20,
+    },
+    # --- Food, Beverage & Restaurants ---
+    # Thin margins, high leverage exposure; stability is less volatile.
+    "Food & Beverage": {
+        "debtRatio": 0.30,
+        "liquidity": 0.25,
+        "profitMargin": 0.25,
+        "zScore": 0.10,
         "revenueTrend": 0.10,
     },
     "Restaurants": {
-        "zScore": 0.25,
-        "liquidity": 0.20,
+        "debtRatio": 0.30,
+        "liquidity": 0.25,
         "profitMargin": 0.25,
-        "debtRatio": 0.20,
+        "zScore": 0.10,
         "revenueTrend": 0.10,
     },
     "Coffee Chains": {
-        "zScore": 0.25,
-        "liquidity": 0.20,
+        "debtRatio": 0.30,
+        "liquidity": 0.25,
         "profitMargin": 0.25,
-        "debtRatio": 0.20,
+        "zScore": 0.10,
         "revenueTrend": 0.10,
     },
     # --- Retail / Manufacturing ---
-    # Capital-intensive, moderate leverage; solvency and liquidity dominate.
-    # Revenue trend has less predictive power because sales can be lumpy.
+    # Capital-intensive, moderate leverage; liquidity and leverage dominate.
     "Retail": {
-        "zScore": 0.30,
+        "debtRatio": 0.30,
         "liquidity": 0.25,
         "profitMargin": 0.20,
-        "debtRatio": 0.15,
+        "zScore": 0.15,
         "revenueTrend": 0.10,
     },
     "Manufacturing": {
-        "zScore": 0.30,
+        "debtRatio": 0.30,
         "liquidity": 0.25,
         "profitMargin": 0.20,
-        "debtRatio": 0.15,
+        "zScore": 0.15,
         "revenueTrend": 0.10,
     },
     # --- Healthcare ---
-    # Regulated revenues; debt and margin stability are key.
+    # Regulated revenues, stable demand; debt structure matters most.
     "Healthcare": {
-        "zScore": 0.25,
+        "debtRatio": 0.30,
         "liquidity": 0.20,
         "profitMargin": 0.25,
-        "debtRatio": 0.20,
+        "zScore": 0.15,
         "revenueTrend": 0.10,
     },
     # --- Real Estate ---
-    # Asset-heavy, high leverage is normal; Z-Score is less informative.
-    # Debt ratio needs extra weight given the sector's capital structure.
+    # High leverage is normal; debt ratio is dominant risk factor.
     "Real Estate": {
-        "zScore": 0.15,
+        "debtRatio": 0.40,
         "liquidity": 0.20,
         "profitMargin": 0.20,
-        "debtRatio": 0.35,
+        "zScore": 0.10,
         "revenueTrend": 0.10,
     },
     # --- Logistics & Transport ---
-    # Asset-intensive and cyclical; liquidity and debt coverage matter most.
+    # Asset-intensive and cyclical; leverage and liquidity dominate.
     "Logistics & Transport": {
-        "zScore": 0.25,
+        "debtRatio": 0.30,
         "liquidity": 0.25,
         "profitMargin": 0.20,
-        "debtRatio": 0.20,
+        "zScore": 0.15,
         "revenueTrend": 0.10,
     },
 }
 
-# Default weights used when no specific industry model is found.
-# Balanced across all five metrics as a safe general-purpose baseline.
+# Default weights (matches user specification exactly):
+# 0.30 Leverage + 0.25 Liquidity + 0.20 Profitability + 0.15 Stability + 0.10 Growth
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "zScore": 0.30,
+    "debtRatio": 0.30,
     "liquidity": 0.25,
     "profitMargin": 0.20,
-    "debtRatio": 0.15,
+    "zScore": 0.15,
     "revenueTrend": 0.10,
 }
 
@@ -156,18 +145,29 @@ class AnalysisResult:
     profit_margin: float
     burn_rate: float
     cash_runway_months: Optional[float]
-    revenue_trend: Optional[float]
-    expense_trend: Optional[float]
+    revenue_trend: float
+    expense_trend: float
     debt_ratio: float
     liquidity_ratio: float
     altman_z_score: float
     risk_score: float
     risk_level: str
     calculation_sources: dict[str, str]
-    # --- New advanced metrics ---
+    # --- Advanced metrics ---
     financial_health_score: float   # 0-100, inverse of risk score (higher = healthier business)
     bankruptcy_probability: float   # percentage estimate based on Z-Score zone
     industry_model_applied: str     # name of the industry risk model used for the health score
+    # --- v4.0: explainability & consistency layer ---
+    risk_score_breakdown: dict[str, float] = field(default_factory=dict)
+    confidence_level: str = "High"                  # High / Medium / Low
+    confidence_explanation: str = ""
+    revenue_trend_label: str = "Insufficient data"  # Increasing / Flat / Declining / Volatile
+    runway_label: str = ""                          # human-readable runway description
+    bankruptcy_explanation: str = ""                 # always explain the probability
+    # --- v5.0: deterministic scoring outputs ---
+    drivers: list[str] = field(default_factory=list)    # top 3 risk factors (plain English)
+    explanation: str = ""                                # executive summary for investors/CFOs
+    expense_ratio: float = 0.0                          # total_expenses / revenue
 
 
 class FinancialAnalysisEngine:
@@ -185,14 +185,15 @@ class FinancialAnalysisEngine:
         record: FinancialRecord,
         previous: Optional[FinancialRecord] = None,
         industry: str = "",
+        all_records: Optional[list] = None,
     ) -> AnalysisResult:
         """Run the full analysis pipeline and return an AnalysisResult.
 
         Args:
-            record:   The primary financial record to analyse.
-            previous: Optional prior period record used for trend calculations.
-            industry: The business industry string (e.g. "Technology", "Retail").
-                      Used to select the appropriate industry risk weight model.
+            record:      The primary financial record to analyse.
+            previous:    Optional prior period record used for trend calculations.
+            industry:    The business industry string (e.g. "Technology", "Retail").
+            all_records: All available financial records (for revenue variance).
         """
         # --- Monthly flow figures (stored as-is in the DB) ---
         revenue_monthly = float(record.monthly_revenue or 0)
@@ -247,12 +248,12 @@ class FinancialAnalysisEngine:
         revenue_trend = (
             self._trend(float(previous.monthly_revenue or 0), revenue_monthly)
             if previous is not None
-            else None
+            else 0.0  # No prior period — treat as stable (0% change)
         )
         expense_trend = (
             self._trend(float(previous.monthly_expenses or 0), expenses_monthly)
             if previous is not None
-            else None
+            else 0.0  # No prior period — treat as stable (0% change)
         )
 
         debt_ratio = self._debt_ratio(debt, total_assets, revenue_annual, cash)
@@ -275,62 +276,138 @@ class FinancialAnalysisEngine:
         # Resolve industry-specific weights and model label
         industry_weights, industry_model_applied = get_industry_weights(industry)
 
-        # ── Primary composite Financial Health Score (0–100, higher = healthier) ──
-        # Revenue trend is treated as 0.0 (neutral) when no prior period is available.
-        financial_health_score = round(
-            self._financial_health_score(
-                z_score=z_score,
-                liquidity_ratio=liquidity_ratio,
-                profit_margin=profit_margin,
-                debt_ratio=debt_ratio,
-                revenue_trend=revenue_trend if revenue_trend is not None else 0.0,
-                weights=industry_weights,
-            ),
-            2,
+        # ── Revenue history for stability scoring ──────────────────────────
+        revenue_history: list[float] = []
+        if all_records:
+            revenue_history = [
+                float(getattr(r, "monthly_revenue", 0) or 0) for r in all_records
+            ]
+        elif previous is not None:
+            revenue_history = [float(previous.monthly_revenue or 0), revenue_monthly]
+        else:
+            revenue_history = [revenue_monthly]
+
+        # ── Component risk scores (0–100 each, step-function scoring) ────
+        leverage_score = self._score_leverage(debt_ratio)
+        liquidity_score = self._score_liquidity(liquidity_ratio)
+        profitability_score = self._score_profitability(profit_margin)
+        stability_score = self._score_stability(revenue_history)
+        growth_score = self._score_growth(revenue_trend)
+
+        # ── Weighted risk score (deterministic, no penalties) ─────────────
+        risk_score = (
+            industry_weights["debtRatio"] * leverage_score
+            + industry_weights["liquidity"] * liquidity_score
+            + industry_weights["profitMargin"] * profitability_score
+            + industry_weights["zScore"] * stability_score
+            + industry_weights["revenueTrend"] * growth_score
         )
-
-        # Risk Score = complement of Financial Health Score (higher = riskier)
-        risk_score = 100.0 - financial_health_score
-
-        # ── Distress penalties ──────────────────────────────────────────────────
-        # Applied after the weighted composite so that severe conditions in any
-        # single critical dimension cannot be masked by strong scores elsewhere.
-        # Combined maximum penalty = 45 points.
-        if z_score < 1.8:
-            risk_score = min(risk_score + 20.0, 100.0)
-        if profit_margin < 0:
-            risk_score = min(risk_score + 15.0, 100.0)
-        if cash_runway is not None and cash_runway < 6:
-            risk_score = min(risk_score + 10.0, 100.0)
-
-        # Hard validation: critically short runway MUST produce High Risk
-        if burn_rate > 0 and cash_runway is not None and cash_runway < 1.5:
-            risk_score = max(risk_score, 60.0)
-
-        risk_score = round(min(risk_score, 100.0), 2)
-
-        # Keep financial_health_score consistent with the penalised risk score
+        risk_score = round(max(0.0, min(100.0, risk_score)), 2)
         financial_health_score = round(100.0 - risk_score, 2)
 
-        # Map risk score to the 3-tier DB enum
-        #   Low Risk      (0–30)   → "safe"
-        #   Moderate Risk (30–60)  → "moderate_risk"
-        #   High Risk     (60–100) → "high_risk"
-        if risk_score <= 30:
-            risk_level = "safe"
-        elif risk_score <= 60:
-            risk_level = "moderate_risk"
+        # ── Expense ratio (display metric) ────────────────────────────────
+        expense_ratio = round(
+            (expenses_monthly / revenue_monthly) if revenue_monthly > 0 else 0.0, 4
+        )
+
+        # ── 4-tier risk classification ────────────────────────────────────
+        if risk_score <= 25:
+            risk_level = "low"
+        elif risk_score <= 50:
+            risk_level = "medium"
+        elif risk_score <= 75:
+            risk_level = "high"
         else:
-            risk_level = "high_risk"
+            risk_level = "critical"
+
+        # ── Top 3 risk drivers ────────────────────────────────────────────
+        _driver_items = [
+            (
+                industry_weights["debtRatio"] * leverage_score,
+                f"Debt ratio of {debt_ratio:.0%} "
+                + ("exceeds safe threshold" if debt_ratio > 0.6
+                   else "approaching risk zone" if debt_ratio >= 0.4
+                   else "is within healthy range"),
+            ),
+            (
+                industry_weights["liquidity"] * liquidity_score,
+                f"Liquidity ratio of {liquidity_ratio:.2f} "
+                + ("signals cash strain" if liquidity_ratio < 1.0
+                   else "is adequate" if liquidity_ratio <= 2.0
+                   else "is strong"),
+            ),
+            (
+                industry_weights["profitMargin"] * profitability_score,
+                f"Profit margin of {profit_margin:.1f}% "
+                + ("is critically thin" if profit_margin < 5
+                   else "is moderate" if profit_margin <= 15
+                   else "is healthy"),
+            ),
+            (
+                industry_weights["zScore"] * stability_score,
+                "Revenue "
+                + ("is highly volatile" if stability_score >= 85
+                   else "shows moderate volatility" if stability_score >= 60
+                   else "is stable"),
+            ),
+            (
+                industry_weights["revenueTrend"] * growth_score,
+                f"Revenue growth of {revenue_trend * 100:.1f}% "
+                + ("is negative — contraction risk" if revenue_trend < 0
+                   else "is flat — limited momentum" if revenue_trend <= 0.10
+                   else "is positive"),
+            ),
+        ]
+        _driver_items.sort(key=lambda x: x[0], reverse=True)
+        drivers = [item[1] for item in _driver_items[:3]]
+
+        # ── Executive summary ─────────────────────────────────────────────
+        _tones = {
+            "low": "demonstrates a healthy financial position",
+            "medium": "has moderate risk exposure that warrants monitoring",
+            "high": "faces elevated financial risk requiring attention",
+            "critical": "is under significant financial stress requiring immediate action",
+        }
+        explanation = (
+            f"The business {_tones[risk_level]} with a risk score of "
+            f"{risk_score:.0f}/100. Primary driver: {drivers[0].lower()}."
+        )
 
         bankruptcy_probability = self._bankruptcy_probability(z_score)
+
+        # ── v4.0: Risk score breakdown (per-component contributions) ────────
+        risk_score_breakdown = self._risk_score_breakdown(
+            leverage_score=leverage_score,
+            liquidity_score=liquidity_score,
+            profitability_score=profitability_score,
+            stability_score=stability_score,
+            growth_score=growth_score,
+            weights=industry_weights,
+        )
+
+        # ── v4.0: Confidence level ─────────────────────────────────────────
+        confidence_level, confidence_explanation = self._compute_confidence(sources)
+
+        # ── v4.0: Revenue trend label ───────────────────────────────────────
+        revenue_trend_label = self._classify_revenue_trend(revenue_trend, previous)
+
+        # ── v4.0: Runway label ──────────────────────────────────────────────
+        runway_label = self._resolve_runway_label(
+            burn_rate, cash_runway, cash, expenses_monthly,
+        )
+
+        # ── v4.0: Bankruptcy explanation ────────────────────────────────────
+        bankruptcy_explanation = self._explain_bankruptcy(
+            bankruptcy_probability, z_score, debt_ratio,
+            liquidity_ratio, profit_margin,
+        )
 
         return AnalysisResult(
             profit_margin=round(profit_margin, 4),
             burn_rate=round(burn_rate, 2),
             cash_runway_months=round(cash_runway, 2) if cash_runway is not None else None,
-            revenue_trend=round(revenue_trend, 4) if revenue_trend is not None else None,
-            expense_trend=round(expense_trend, 4) if expense_trend is not None else None,
+            revenue_trend=round(revenue_trend, 4),
+            expense_trend=round(expense_trend, 4),
             debt_ratio=round(debt_ratio, 4),
             liquidity_ratio=round(liquidity_ratio, 4),
             altman_z_score=round(z_score, 4),
@@ -340,6 +417,15 @@ class FinancialAnalysisEngine:
             financial_health_score=round(financial_health_score, 2),
             bankruptcy_probability=round(bankruptcy_probability, 2),
             industry_model_applied=industry_model_applied,
+            risk_score_breakdown=risk_score_breakdown,
+            confidence_level=confidence_level,
+            confidence_explanation=confidence_explanation,
+            revenue_trend_label=revenue_trend_label,
+            runway_label=runway_label,
+            bankruptcy_explanation=bankruptcy_explanation,
+            drivers=drivers,
+            explanation=explanation,
+            expense_ratio=expense_ratio,
         )
 
     # ------------------------------------------------------------------
@@ -352,9 +438,14 @@ class FinancialAnalysisEngine:
 
         Uses monthly figures — a ratio, so scale does not matter.
         A healthy mature business typically shows > 10 %.
+
+        When revenue is zero and expenses are positive the business is in a
+        pre-revenue or total-loss state.  Returning 0 % would mask the
+        severity and skip the negative-margin distress penalty (+15 pts),
+        so we return -100 % instead.
         """
         if revenue == 0:
-            return 0.0
+            return -100.0 if expenses > 0 else 0.0
         return (revenue - expenses) / revenue * 100
 
     def _burn_rate(self, revenue: float, expenses: float) -> float:
@@ -547,186 +638,247 @@ class FinancialAnalysisEngine:
 
         return 1.2 * x1 + 1.4 * x2 + 3.3 * x3 + 0.6 * x4 + 1.0 * x5
 
-    def _risk_classification(
+    # ------------------------------------------------------------------
+    # v4.0: Risk score breakdown (per-component contributions)
+    # ------------------------------------------------------------------
+
+    def _risk_score_breakdown(
         self,
-        z_score: float,
-        liquidity_ratio: float,
-        debt_ratio: float,
-        profit_margin: float,
-        burn_rate: float,
-        cash_runway: Optional[float],
-    ) -> tuple[float, str]:
+        leverage_score: float,
+        liquidity_score: float,
+        profitability_score: float,
+        stability_score: float,
+        growth_score: float,
+        weights: dict[str, float],
+    ) -> dict[str, float]:
+        """Per-component risk contributions that sum exactly to risk_score.
+
+        v5.0: each value = weight × component step-function score.
         """
-        Composite risk score (0–100) derived from four financial dimensions:
+        return {
+            "leverage_risk": round(weights["debtRatio"] * leverage_score, 1),
+            "liquidity_risk": round(weights["liquidity"] * liquidity_score, 1),
+            "profitability_risk": round(weights["profitMargin"] * profitability_score, 1),
+            "stability_risk": round(weights["zScore"] * stability_score, 1),
+            "trend_risk": round(weights["revenueTrend"] * growth_score, 1),
+        }
 
-        1. Altman Z-Score (weight 50 %)
-           Z > 3.0  → base 10   (low risk)
-           1.8–3.0  → base 10–60 (linear scale, medium risk)
-           Z < 1.8  → base 60–100 (linear scale, high risk)
+    # ------------------------------------------------------------------
+    # v4.0: Confidence level
+    # ------------------------------------------------------------------
 
-        2. Liquidity Ratio (weight 20 %)
-           ≥ 1.5  → +0   penalty
-           1.0–1.5 → +5
-           0.5–1.0 → +10
-           < 0.5  → +15
-
-        3. Debt Ratio (weight 20 %)
-           < 0.4  → +0
-           0.4–0.7 → +5
-           ≥ 0.7  → +10
-
-        4. Profit Margin (weight 10 %)
-           ≥ 10 % → +0
-           0–10 % → +3
-           < 0 %  → +7
-
-        Additional adjustment:
-           Burn-rate penalty: +10 if runway < 3 months, +5 if < 6 months
-
-        Final level:
-           score ≤ 30 → "safe"
-           30 < score ≤ 60 → "moderate_risk"
-           score > 60 → "high_risk"
-        """
-        # --- Component 1: Z-Score base (0–100, 50 % of total) ---
-        if z_score > 3.0:
-            z_base = 10.0
-        elif z_score >= 1.8:
-            # Linear interpolation: Z=3.0 → 10, Z=1.8 → 60
-            z_base = 10.0 + (3.0 - z_score) / (3.0 - 1.8) * 50.0
-        else:
-            # Linear interpolation: Z=1.8 → 60, Z=−5 → 100
-            clamped = max(z_score, -5.0)
-            z_base = 60.0 + (1.8 - clamped) / (1.8 + 5.0) * 40.0
-
-        # --- Component 2: Liquidity penalty (0–15) ---
-        if liquidity_ratio >= 1.5:
-            liq_penalty = 0.0
-        elif liquidity_ratio >= 1.0:
-            liq_penalty = 5.0
-        elif liquidity_ratio >= 0.5:
-            liq_penalty = 10.0
-        else:
-            liq_penalty = 15.0
-
-        # --- Component 3: Debt-ratio penalty (0–10) ---
-        if debt_ratio < 0.4:
-            debt_penalty = 0.0
-        elif debt_ratio < 0.7:
-            debt_penalty = 5.0
-        else:
-            debt_penalty = 10.0
-
-        # --- Component 4: Profit-margin penalty (0–7) ---
-        if profit_margin >= 10.0:
-            margin_penalty = 0.0
-        elif profit_margin >= 0.0:
-            margin_penalty = 3.0
-        else:
-            margin_penalty = 7.0
-
-        # --- Burn-rate adjustment ---
-        burn_penalty = 0.0
-        if burn_rate > 0 and cash_runway is not None:
-            if cash_runway < 3:
-                burn_penalty = 10.0
-            elif cash_runway < 6:
-                burn_penalty = 5.0
-
-        # --- Combine with weights ---
-        # z_base already reflects 50 % weight because its range is 10–100.
-        # The remaining components add up to at most 42 points.
-        # The weighted sum keeps the score meaningful and bounded at 100.
-        raw = z_base * 0.50 + (liq_penalty + debt_penalty + margin_penalty + burn_penalty)
-
-        # Normalise: z_base * 0.5 can be 5–50; penalties add 0–42 → max ~92.
-        # We re-scale the penalty portion so the total fits 0–100.
-        risk_score = min(max(raw, 0.0), 100.0)
-
-        # 5-tier display classification (used on frontend via risk_score):
-        #   0–20  → Very Safe    (mapped to DB level: safe)
-        #   21–40 → Low Risk     (mapped to DB level: safe)
-        #   41–60 → Moderate Risk(mapped to DB level: moderate_risk)
-        #   61–80 → High Risk    (mapped to DB level: high_risk)
-        #   81–100→ Critical Risk (mapped to DB level: high_risk)
-        if risk_score <= 40:
-            risk_level = "safe"
-        elif risk_score <= 60:
-            risk_level = "moderate_risk"
-        else:
-            risk_level = "high_risk"
-
-        return risk_score, risk_level
-
-    def _financial_health_score(
-        self,
-        z_score: float,
-        liquidity_ratio: float,
-        profit_margin: float,
-        debt_ratio: float,
-        revenue_trend: float,
-        weights: Optional[dict] = None,
-    ) -> float:
-        """
-        Financial Health Score — primary composite weighted metric (0–100, higher = healthier).
-
-        Each raw metric is first normalised to a 0–1 scale where 1.0 = best-possible
-        financial health for that dimension.  The industry-weighted average gives an
-        overall health index [0–1] which is scaled to 0–100.
-
-        Default weights (General Industry):
-          30 % Altman Z-Score   — primary solvency signal
-          25 % Liquidity Ratio  — short-term cash adequacy
-          20 % Profit Margin    — operational efficiency
-          15 % Debt Ratio       — leverage risk
-          10 % Revenue Trend    — growth trajectory
-
-        Normalisation bounds (chosen so that spec thresholds map to meaningful scores):
-          Z-Score      [-5, 6]   : Z = 3.0 (safe zone entry) → ~0.73
-          Liquidity    [0, 3.0]  : ratio = 2.0 (strong) → 0.67
-          Profit Margin[-20, 30] : PM = 20 % (strong) → 0.80; PM = 0 % → 0.40
-          Debt Ratio   [0, 1.0]  : debt = 0.60 (high risk) → health 0.40
-          Revenue Trend[-0.3, 0.3]: +5 % MoM (strong growth) → ~0.58
-
-        Risk classification (derived from this score):
-          81–100 → Very Safe
-          61–80  → Low Risk
-          41–60  → Moderate Risk
-          21–40  → High Risk
-          0–20   → Critical Risk
-        """
-        if weights is None:
-            weights = DEFAULT_WEIGHTS
-
-        # --- Normalise each metric to [0, 1] health scale ---
-
-        # Z-Score: clamp [-5, 6]; Z=6 → 1.0, Z=-5 → 0.0
-        # Safe zone (Z≥3.0) maps to ≥0.73; distress zone (Z<1.2) maps to <0.38.
-        z_norm = max(0.0, min(1.0, (z_score + 5.0) / 11.0))
-
-        # Liquidity Ratio: clamp [0, 3]; ratio=3 → 1.0, ratio=2 → 0.67, ratio<1 → <0.33
-        liq_norm = max(0.0, min(1.0, liquidity_ratio / 3.0))
-
-        # Profit Margin (%): clamp [-20, 30]; 30 % → 1.0, 20 % → 0.80, 0 % → 0.40, -20 % → 0.0
-        pm_norm = max(0.0, min(1.0, (profit_margin + 20.0) / 50.0))
-
-        # Debt Ratio: lower debt = healthier; clamp [0, 1.0]; 0 → 1.0, 0.6 → 0.40, ≥1.0 → 0.0
-        debt_norm = max(0.0, min(1.0, 1.0 - debt_ratio / 1.0))
-
-        # Revenue Trend (ratio): clamp [-0.3, 0.3]; +0.3 → 1.0, +0.05 → ~0.58, 0 → 0.50, -0.3 → 0.0
-        trend_norm = max(0.0, min(1.0, (revenue_trend + 0.3) / 0.6))
-
-        # --- Weighted health index (0–1, higher = healthier) ---
-        health = (
-            weights["zScore"]       * z_norm
-            + weights["liquidity"]    * liq_norm
-            + weights["profitMargin"] * pm_norm
-            + weights["debtRatio"]    * debt_norm
-            + weights["revenueTrend"] * trend_norm
+    @staticmethod
+    def _compute_confidence(sources: dict[str, str]) -> tuple[str, str]:
+        """Return (level, explanation) based on how many fields use fallbacks."""
+        fallback_fields = [
+            k for k in ("total_assets", "current_liabilities", "ebit", "retained_earnings")
+            if sources.get(k, "provided") != "provided"
+        ]
+        count = len(fallback_fields)
+        if count == 0:
+            return "High", "All balance-sheet inputs were provided directly."
+        names = ", ".join(fallback_fields)
+        if count <= 1:
+            return "Medium", (
+                f"One input ({names}) was estimated using a fallback, "
+                "which may affect accuracy of solvency metrics."
+            )
+        return "Low", (
+            f"Multiple inputs ({names}) are estimated using fallbacks, "
+            "which may affect accuracy. Provide actual balance-sheet data for higher confidence."
         )
 
-        # Scale to 0–100 (higher = healthier, NOT inverted)
-        return health * 100.0
+    # ------------------------------------------------------------------
+    # v4.0: Revenue trend label (Rule #4 — no artificial precision)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _classify_revenue_trend(
+        revenue_trend: float,
+        previous: Optional[object],
+    ) -> str:
+        """Return a human-readable label: Increasing / Flat / Declining / Insufficient data."""
+        if previous is None:
+            return "Insufficient data"
+        pct = revenue_trend * 100
+        if pct > 1:
+            return "Increasing"
+        if pct < -1:
+            return "Declining"
+        return "Flat"
+
+    # ------------------------------------------------------------------
+    # v4.0: Runway label (Rule #3 — never show ∞ or "Not at risk")
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _resolve_runway_label(
+        burn_rate: float,
+        cash_runway: Optional[float],
+        cash_reserves: float,
+        monthly_expenses: float,
+    ) -> str:
+        """Return a decision-useful runway label."""
+        if burn_rate > 0 and cash_runway is not None:
+            if cash_runway < 3:
+                return f"{cash_runway:.1f} months — critical"
+            if cash_runway < 6:
+                return f"{cash_runway:.1f} months — tight"
+            if cash_runway < 12:
+                return f"{cash_runway:.1f} months"
+            return f"{cash_runway:.0f} months — comfortable"
+
+        # Business is cash-flow positive (burn_rate <= 0)
+        # Check if cash reserves are still low relative to expenses
+        months_of_expenses = (
+            cash_reserves / monthly_expenses if monthly_expenses > 0 else 999
+        )
+        if months_of_expenses < 3:
+            return "Limited cash buffer despite positive cash flow"
+        return "No burn (cash-flow positive)"
+
+    # ------------------------------------------------------------------
+    # v4.0: Bankruptcy explanation (Rule #5 — always explained)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _explain_bankruptcy(
+        probability: float,
+        z_score: float,
+        debt_ratio: float,
+        liquidity_ratio: float,
+        profit_margin: float,
+    ) -> str:
+        """Return a plain-English explanation of the bankruptcy probability."""
+        drivers: list[str] = []
+        offsets: list[str] = []
+
+        if z_score < 1.8:
+            drivers.append("distress-zone Altman Z-score")
+        elif z_score < 2.5:
+            drivers.append("grey-zone Altman Z-score")
+        else:
+            offsets.append("safe-zone Z-score")
+
+        if debt_ratio >= 0.6:
+            drivers.append(f"high leverage ({debt_ratio:.0%} debt ratio)")
+        elif debt_ratio < 0.3:
+            offsets.append("conservative leverage")
+
+        if liquidity_ratio < 1.0:
+            drivers.append("sub-1 liquidity")
+        elif liquidity_ratio >= 2.0:
+            offsets.append("strong liquidity")
+
+        if profit_margin < 0:
+            drivers.append("negative profitability")
+        elif profit_margin >= 10:
+            offsets.append("healthy profitability")
+
+        parts: list[str] = []
+        if probability <= 10:
+            parts.append(
+                f"Bankruptcy risk is low at {probability:.0f}%"
+            )
+        elif probability <= 30:
+            parts.append(
+                f"Bankruptcy risk of {probability:.0f}% warrants monitoring"
+            )
+        else:
+            parts.append(
+                f"Bankruptcy risk is elevated at {probability:.0f}%"
+            )
+
+        if drivers:
+            parts.append(f"driven primarily by {', '.join(drivers)}")
+        if offsets:
+            parts.append(f"partially offset by {', '.join(offsets)}")
+
+        return ", ".join(parts) + "."
+
+    # ------------------------------------------------------------------
+    # v5.0: Deterministic component scoring (step functions)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _score_leverage(debt_ratio: float) -> float:
+        """Leverage risk score (0–100) from debt ratio.
+
+        < 0.4  → 20  (low risk)
+        0.4–0.6 → 50  (moderate)
+        > 0.6  → 90  (high risk)
+        """
+        if debt_ratio < 0.4:
+            return 20.0
+        if debt_ratio <= 0.6:
+            return 50.0
+        return 90.0
+
+    @staticmethod
+    def _score_liquidity(liquidity_ratio: float) -> float:
+        """Liquidity risk score (0–100) from current ratio.
+
+        > 2.0  → 20  (low risk)
+        1.0–2.0 → 50  (moderate)
+        < 1.0  → 85  (high risk)
+        """
+        if liquidity_ratio > 2.0:
+            return 20.0
+        if liquidity_ratio >= 1.0:
+            return 50.0
+        return 85.0
+
+    @staticmethod
+    def _score_profitability(profit_margin: float) -> float:
+        """Profitability risk score (0–100) from profit margin (%).
+
+        > 15%  → 20  (low risk)
+        5–15%  → 50  (moderate)
+        < 5%   → 80  (high risk)
+        """
+        if profit_margin > 15.0:
+            return 20.0
+        if profit_margin >= 5.0:
+            return 50.0
+        return 80.0
+
+    @staticmethod
+    def _score_stability(revenue_values: list[float]) -> float:
+        """Stability risk score (0–100) from revenue variance.
+
+        Coefficient of variation (CV) across available periods:
+          CV < 0.10   → 30  (stable)
+          0.10–0.25   → 60  (moderate volatility)
+          CV > 0.25   → 85  (high volatility)
+
+        Falls back to 50 (moderate) when fewer than 3 periods are available.
+        """
+        if len(revenue_values) < 3:
+            return 50.0  # insufficient data — assume moderate
+        mean_val = sum(revenue_values) / len(revenue_values)
+        if mean_val == 0:
+            return 85.0  # no revenue = high instability
+        variance = sum((r - mean_val) ** 2 for r in revenue_values) / len(revenue_values)
+        cv = (variance ** 0.5) / abs(mean_val)
+        if cv < 0.10:
+            return 30.0
+        if cv <= 0.25:
+            return 60.0
+        return 85.0
+
+    @staticmethod
+    def _score_growth(revenue_growth: float) -> float:
+        """Growth risk score (0–100) from revenue growth ratio.
+
+        > 10%     → 20  (low risk)
+        0–10%     → 50  (moderate)
+        negative  → 80  (high risk)
+        """
+        if revenue_growth > 0.10:
+            return 20.0
+        if revenue_growth >= 0.0:
+            return 50.0
+        return 80.0
 
     def _bankruptcy_probability(self, z_score: float) -> float:
         """

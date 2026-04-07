@@ -41,7 +41,7 @@ class TranslationService:
 
     def __init__(self) -> None:
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = "gemini-2.0-flash"
+        self.model = "gemini-2.5-flash"
 
     async def translate(self, text: str, target_language: str) -> str:
         """Translate *text* into *target_language* (ISO 639-1 code).

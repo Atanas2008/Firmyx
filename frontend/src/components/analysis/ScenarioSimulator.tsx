@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { SlidersHorizontal, ArrowDown, ArrowUp, Minus, Zap, Info } from 'lucide-react';
+import { SlidersHorizontal, ArrowDown, ArrowUp, Minus, Zap, Info, ArrowRight, Save } from 'lucide-react';
+import Link from 'next/link';
 import { analysisApi } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -17,7 +18,7 @@ function formatMetricValue(key: string, value: number | null): string {
   if (key === 'debt_ratio') return `${(value * 100).toFixed(1)}%`;
   if (key === 'bankruptcy_probability') return `${value.toFixed(0)}%`;
   if (key === 'cash_runway_months') {
-    if (value >= 999) return '∞';
+    if (value >= 999) return 'CF+';
     return value.toFixed(1);
   }
   return value.toFixed(2);
@@ -218,8 +219,18 @@ export function ScenarioSimulator({ businessId }: ScenarioSimulatorProps) {
           {result && !loading && result.summary && (
             <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-4 py-3">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
-              <p className="text-sm text-blue-800 dark:text-blue-200">{result.summary}</p>
+              <div>
+                <p className="text-sm text-blue-800 dark:text-blue-200">{result.summary}</p>
+                {result.disclaimer && (
+                  <p className="mt-1 text-[11px] italic text-blue-600/70 dark:text-blue-300/60">{result.disclaimer}</p>
+                )}
+              </div>
             </div>
+          )}
+
+          {/* Before/After score comparison hero */}
+          {result && !loading && result.comparison.risk_score && (
+            <ScoreComparisonHero comparison={result.comparison} t={t} />
           )}
 
           {/* Results */}
@@ -258,6 +269,18 @@ export function ScenarioSimulator({ businessId }: ScenarioSimulatorProps) {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Post-scenario CTA */}
+          {result && !loading && (
+            <div className="flex flex-col gap-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-5">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                {t.conversion.saveAndTrack}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t.conversion.saveAndTrackDesc}
+              </p>
             </div>
           )}
         </div>
@@ -333,5 +356,74 @@ function DirectionBadge({ direction, delta, metricKey }: DirectionBadgeProps) {
       <Icon className="h-3 w-3" />
       {displayDelta}
     </span>
+  );
+}
+
+// ─── Before/After Score Comparison ────────────────────────────────────────────
+
+import type { MetricComparison } from '@/types';
+
+function scoreColor(score: number): string {
+  if (score > 70) return 'text-red-600 dark:text-red-400';
+  if (score > 50) return 'text-orange-600 dark:text-orange-400';
+  if (score > 30) return 'text-amber-600 dark:text-amber-400';
+  return 'text-emerald-600 dark:text-emerald-400';
+}
+
+function scoreRing(score: number): string {
+  if (score > 70) return 'ring-red-500';
+  if (score > 50) return 'ring-orange-500';
+  if (score > 30) return 'ring-amber-500';
+  return 'ring-emerald-500';
+}
+
+function statusFromScore(score: number, t: ReturnType<typeof useLanguage>['t']): string {
+  if (score > 70) return t.conversion.statusHigh;
+  if (score > 30) return t.conversion.statusModerate;
+  return t.conversion.statusLow;
+}
+
+function ScoreComparisonHero({ comparison, t }: { comparison: Record<string, MetricComparison>; t: ReturnType<typeof useLanguage>['t'] }) {
+  const riskCmp = comparison.risk_score;
+  if (!riskCmp || riskCmp.original === null || riskCmp.adjusted === null) return null;
+
+  const origScore = riskCmp.original;
+  const newScore = riskCmp.adjusted;
+  const improved = newScore < origScore;
+
+  return (
+    <div className={`rounded-xl border p-5 ${
+      improved ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20'
+    }`}>
+      <div className="flex items-center justify-center gap-6">
+        {/* Before */}
+        <div className="text-center">
+          <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{t.scenario.original}</p>
+          <div className={`flex h-16 w-16 items-center justify-center rounded-full ring-3 ${scoreRing(origScore)} bg-white dark:bg-gray-900 mx-auto`}>
+            <span className={`text-xl font-bold ${scoreColor(origScore)}`}>{Math.round(origScore)}</span>
+          </div>
+          <p className={`text-xs font-medium mt-1 ${scoreColor(origScore)}`}>{statusFromScore(origScore, t)}</p>
+        </div>
+
+        {/* Arrow */}
+        <div className="flex flex-col items-center">
+          <ArrowRight className={`h-6 w-6 ${improved ? 'text-emerald-500' : 'text-amber-500'}`} />
+          {riskCmp.delta !== null && (
+            <span className={`text-xs font-bold mt-0.5 ${improved ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+              {riskCmp.delta > 0 ? '+' : ''}{riskCmp.delta.toFixed(0)} pts
+            </span>
+          )}
+        </div>
+
+        {/* After */}
+        <div className="text-center">
+          <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{t.scenario.simulated}</p>
+          <div className={`flex h-16 w-16 items-center justify-center rounded-full ring-3 ${scoreRing(newScore)} bg-white dark:bg-gray-900 mx-auto`}>
+            <span className={`text-xl font-bold ${scoreColor(newScore)}`}>{Math.round(newScore)}</span>
+          </div>
+          <p className={`text-xs font-medium mt-1 ${scoreColor(newScore)}`}>{statusFromScore(newScore, t)}</p>
+        </div>
+      </div>
+    </div>
   );
 }

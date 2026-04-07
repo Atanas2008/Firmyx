@@ -67,8 +67,9 @@ export const en = {
     settings: 'Settings',
     overview: 'Overview',
     financials: 'Financials',
-    analysis: 'Analysis',
+    analysis: 'Financial Assessment',
     reports: 'Reports',
+    scenario: 'Fix Your Risk',
   },
 
   // ── Theme ───────────────────────────────────────────────
@@ -152,7 +153,7 @@ export const en = {
 
   // ── Analysis ────────────────────────────────────────────
   analysis: {
-    title: 'Risk Analysis',
+    title: 'Financial Assessment',
     runLatest: 'Run Latest',
     runAllMonths: 'Run All Months',
     runCombined: 'Run Combined',
@@ -219,6 +220,9 @@ export const en = {
     altmanZScoreDesc: 'Bankruptcy prediction score (>2.99 safe)',
     notAtRisk: 'Not at risk',
     cashFlowPositive: 'cash-flow positive',
+    cashFlowPositiveLiquidityWarn: 'profitable, but liquidity strained',
+    workingCapitalConstrained: 'working-capital constrained',
+    runwayCritical: 'critical — action required',
     atCurrentBurnRate: 'at current burn rate',
     stable: 'Stable',
     metric: 'Metric',
@@ -231,6 +235,12 @@ export const en = {
     moderateRisk: 'Moderate Risk',
     highRisk: 'High Risk',
     unknown: 'Unknown',
+    // v5.0 canonical keys
+    low: 'Low Risk',
+    medium: 'Medium Risk',
+    high: 'High Risk',
+    critical: 'Critical Risk',
+    // Legacy DB keys
     safe: 'Low Risk',
     moderate_risk: 'Moderate Risk',
     high_risk: 'High Risk',
@@ -248,6 +258,12 @@ export const en = {
     distressZone: 'Distress zone — immediate financial review recommended.',
     notAvailable: 'Financial Health Score not available for this analysis.',
     industryModelApplied: 'Industry Risk Model Applied:',
+    bankruptcyDrivenBy: 'This probability is derived from the Altman Z-Score bankruptcy prediction model.',
+    zScoreSafe: 'A Z-Score of {z} places the company firmly in the safe zone (above 2.99), indicating very low insolvency risk.',
+    zScoreGrey: 'A Z-Score of {z} falls in the grey zone (1.81–2.99), indicating moderate uncertainty that warrants monitoring.',
+    zScoreDistress: 'A Z-Score of {z} is in the distress zone (below 1.81), signaling elevated financial distress risk.',
+    highDebtContributes: 'High leverage at {d}% debt ratio further increases the probability.',
+    lowLiquidityContributes: 'A liquidity ratio of {l} below 1.0 compounds the risk, as current liabilities exceed current assets.',
   },
 
   // ── AI Summary ──────────────────────────────────────────
@@ -274,6 +290,36 @@ export const en = {
     asOf: 'As of',
   },
 
+  // ── Decision Header & New Layout ────────────────────────
+  decision: {
+    riskScore: 'Risk Score',
+    healthScore: 'Health Score',
+    bankruptcyProb: 'Bankruptcy Probability',
+    topRiskDrivers: 'Top Risk Drivers',
+    structurallyFragile: 'Structurally Fragile',
+    workingCapitalConstrained: 'Working-Capital Constrained',
+    strongPosition: 'Strong Position',
+    mixedPosition: 'Mixed Position',
+    elevatedRisk: 'Elevated Risk',
+    critical: 'CRITICAL RISK',
+    distressed: 'DISTRESSED',
+    elevated: 'ELEVATED RISK',
+    stable: 'STABLE',
+    keyMetrics: 'Key Metrics',
+    executiveSummary: 'Executive Summary',
+    profitability: 'Profitability',
+    liquidity: 'Liquidity',
+    riskLeverage: 'Risk & Leverage',
+    riskBreakdown: 'Risk Score Breakdown',
+    riskBreakdownSubtitle: 'Estimated contribution of each risk factor to the composite score',
+    riskComposition: 'Risk Composition',
+    estimatedContribution: 'Estimated contribution',
+    recommendations: 'Actions You Can Take',
+    recommendationsSubtitle: 'Prioritised actions with estimated impact — simulate any to see results',
+    justifiedRecommendations: 'Justified Recommendations',
+    justifiedRecommendationsSub: 'Each recommendation includes quantitative justification — investor-defensible and audit-grade',
+  },
+
   // ── Benchmark ───────────────────────────────────────────
   benchmark: {
     comparingAgainst: 'Comparing against',
@@ -293,15 +339,17 @@ export const en = {
     highPriority: 'High priority',
     mediumPriority: 'Medium priority',
     lowPriority: 'Low priority',
-    noCritical: '🎉 No critical recommendations — your business is in great shape!',
-    noCriticalSmart: 'No critical action items',
-    financiallyHealthy: 'Your business appears financially healthy based on the current data. Continue monitoring key metrics and maintain your current strategy.',
-    healthyMetrics: 'All key financial metrics are within healthy ranges. Continue monitoring on a monthly basis.',
+    noCritical: 'No urgent action items identified — focus on strategic positioning and resilience.',
+    noCriticalSmart: 'No urgent action items',
+    financiallyHealthy: 'Key metrics are within healthy ranges. Focus on stress-testing against downside scenarios, monitoring margin trends, and maintaining liquidity reserves for unexpected challenges.',
+    healthyMetrics: 'Key financial metrics are within healthy ranges. Review quarterly to catch emerging trends early.',
     trigger: 'Trigger',
     current: 'Current',
     target: 'Target',
     impact: 'Impact',
     priority: 'priority',
+    showJustification: 'Show justification',
+    hideJustification: 'Hide justification',
   },
 
   // ── AI Chat ─────────────────────────────────────────────
@@ -433,6 +481,9 @@ export const en = {
     minOne: 'Must be at least 1.',
     emailInvalid: 'Enter a valid email.',
     passwordMin: 'Password must be at least 8 characters.',
+    passwordUppercase: 'Password must contain at least one uppercase letter.',
+    passwordLowercase: 'Password must contain at least one lowercase letter.',
+    passwordDigit: 'Password must contain at least one digit.',
     passwordMismatch: 'Passwords do not match.',
     nameMin: 'must be at least 2 characters.',
     nameMax: 'must be at most 100 characters.',
@@ -466,8 +517,8 @@ export const en = {
 
   // ── Scenario Simulator ──────────────────────────────────
   scenario: {
-    title: 'Scenario Analysis',
-    simulatorTitle: 'Scenario Simulator (What-If Analysis)',
+    title: 'See How to Reduce Your Risk',
+    simulatorTitle: 'Scenario Simulator — What happens if you fix it?',
     collapse: 'Collapse',
     expand: 'Expand',
     quickScenarios: 'Quick Scenarios',
@@ -519,6 +570,186 @@ export const en = {
     profitable: 'Profitable',
     monthsRunway: 'months runway',
     infiniteRunway: 'Infinite runway',
+    range: 'range',
+  },
+
+  // ── Onboarding ──────────────────────────────────────────
+  onboarding: {
+    badge: 'Free risk analysis in 30 seconds',
+    headline: 'Understand your business risk in seconds',
+    subheadline: 'See your biggest financial risks, what they mean, and exactly what to do about them — before it\'s too late.',
+    tryDemo: 'Try with demo data',
+    uploadYourData: 'Sign in to upload data',
+    trustSignal1: 'Bank-grade analysis',
+    trustSignal2: 'Data stays private',
+    trustSignal3: 'Results in seconds',
+    demoMode: 'Demo',
+    demoTitle: 'Risk Analysis',
+    demoSubtitle: 'Sample analysis — explore freely',
+    tourStep1Title: 'Your risk score at a glance',
+    tourStep1Desc: 'This is the overall risk score — a single number summarising financial stability. Red means urgent action needed.',
+    tourStep2Title: 'What\'s driving the risk',
+    tourStep2Desc: 'These bars show where risk comes from — liquidity, leverage, profitability, and stability. Focus on the red bars first.',
+    tourStep3Title: 'What you can do about it',
+    tourStep3Desc: 'Each recommendation shows the expected impact on your score. High-priority items should be addressed first.',
+    skipTour: 'Skip',
+    finish: 'Got it',
+    insightBanner: 'Your biggest risk is {risk}',
+    insightBannerSub: 'See how fixing this changes your score on the Scenario page.',
+    transitionPrompt: 'Want to analyse your own business?',
+    uploadCsvExcel: 'Upload CSV / Excel',
+    enterManually: 'Enter data manually',
+    continueExploring: 'Continue exploring demo',
+    bottomCTADesc: 'Upload your financial data and get a full risk analysis — free for your first business.',
+    getStartedFree: 'Get started free',
+  },
+
+  // ── Conversion ─────────────────────────────────────────
+  conversion: {
+    biggestRisk: 'Your biggest risk is',
+    fixCouldReduce: 'Fixing this could reduce your risk score by ~{points} points',
+    seeHowToFix: 'See how to fix this',
+    reduceYourRisk: 'Reduce your risk',
+    simulateThis: 'Simulate this →',
+    scoreImproved: 'Your risk score improved by {points} points since last update',
+    scoreWorsened: 'Your risk score increased by {points} points since last update',
+    keepImproving: 'Keep up the momentum — continue monitoring and acting on recommendations.',
+    takeAction: 'Review the recommendations below and simulate fixes to reverse this trend.',
+    saveAndTrack: 'Save your analysis and track changes over time',
+    saveAndTrackDesc: 'Upload your financial data monthly to track progress and get updated recommendations.',
+    basedOnIndicators: 'Based on {count} financial indicators',
+    usedByTeams: 'Used by founders and finance teams',
+    statusHigh: 'High Risk',
+    statusModerate: 'Moderate Risk',
+    statusLow: 'Low Risk',
+    analyzeOwn: 'Want to analyse your own business?',
+    analyzeOwnDesc: 'Upload your financial data and get a personalised risk assessment.',
+    applyToYours: 'Apply this to your business',
+    signUpToSimulate: 'Sign up to simulate',
+  },
+
+  // ── Enterprise / Investor-Grade ─────────────────────────
+  enterprise: {
+    // Primary Action
+    primaryAction: 'Do This First',
+    primaryActionSub: 'The single highest-impact action based on your financial data',
+    expectedImpact: 'Expected Impact',
+    riskReduction: '−{points} risk points',
+    healthGain: '+{points} health score',
+    timeframe: 'Timeframe',
+    simulateAction: 'Simulate this action',
+    allClear: 'No urgent actions — your finances are in good shape',
+    allClearSub: 'Continue monitoring and maintaining current discipline',
+
+    // Score Decomposition
+    scoreBreakdown: 'Score Breakdown',
+    scoreBreakdownSub: 'How your risk score is calculated',
+    contribution: '{points} pts',
+    ofTotal: 'of {total}',
+    liquidityRisk: 'Liquidity Risk',
+    leverageRisk: 'Leverage Risk',
+    profitabilityRisk: 'Profitability Risk',
+    stabilityRisk: 'Stability Risk',
+    revenueTrendRisk: 'Revenue Trend Risk',
+    formulaNote: 'Score = weighted sum across five risk dimensions, calibrated to {model} industry model',
+
+    // Data Confidence
+    dataConfidence: 'Data Quality',
+    dataConfidenceSub: 'How your balance sheet fields were sourced',
+    provided: 'Provided',
+    estimated: 'Estimated',
+    fieldsProvided: '{count}/{total} fields provided',
+    highConfidence: 'High confidence — all key fields provided',
+    mediumConfidence: 'Medium confidence — some fields estimated',
+    lowConfidence: 'Low confidence — most fields estimated',
+    confidenceNote: 'Provide total_assets, current_liabilities, ebit, and retained_earnings for maximum accuracy',
+
+    // Status Bar (consolidated banners)
+    sinceLastAnalysis: 'since last analysis',
+    alertsDetected: '{count} alert(s) detected',
+    noAlerts: 'No alerts',
+    topRisk: 'Top risk',
+
+    // Smart Scenario Suggestion
+    suggestedAction: 'Recommended Quick Fix',
+    suggestedActionSub: 'Highest-impact scenario based on your numbers',
+    projectedScore: 'Projected Score',
+    currentScore: 'Current',
+    tryThisScenario: 'Apply this scenario',
+
+    // Cost of Inaction (loss aversion ticker)
+    costOfInaction: 'Cost of Inaction',
+    costOfInactionSub: 'Estimated financial impact of delaying action',
+    losingPerDay: '~${amount}/day lost',
+    losingPerMonth: '~${amount}/month at risk',
+    everyDayCounts: 'Every day without action compounds this loss',
+    burnRateBasis: 'Based on current burn rate of ${amount}/mo',
+    marginLossBasis: 'Based on negative margin applied to revenue',
+    actNow: 'Act now',
+
+    // Weekly Digest (retention)
+    weeklyDigest: 'Weekly Risk Monitoring',
+    weeklyDigestSub: 'Get notified when your financial risk changes',
+    weeklyDigestDesc: 'Receive a weekly email with your risk score trend, new alerts, and recommended actions.',
+    enableAlerts: 'Enable weekly alerts',
+    alertsEnabled: 'Weekly alerts enabled',
+    comingSoon: 'Coming soon',
+
+    // Peer Comparison (social proof)
+    peerComparison: 'Industry Comparison',
+    peerComparisonSub: 'How you compare to similar businesses',
+    betterThan: 'Better than {pct}% of {industry} businesses',
+    worseThan: 'Worse than {pct}% of {industry} businesses',
+    industryMedian: 'Industry median risk score: {score}',
+    topPerformers: 'Top performers in {industry} score below {score}',
+    yourPosition: 'Your position',
+
+    // Action Plan (execution layer)
+    actionPlan: 'Action Plan',
+    actionPlanSub: 'Step-by-step execution checklist — track your progress',
+    stepsCompleted: '{done}/{total} steps completed',
+    riskReduced: '−{points} risk points so far',
+    allStepsComplete: 'All steps complete!',
+    keepGoing: 'Keep going — every step reduces risk',
+    planComplete: '{title} — complete!',
+    riskPoints: 'risk points',
+    startFixing: 'Start Fixing This',
+
+    // Execution Tracker
+    executionInProgress: 'Execution In Progress',
+    executionComplete: 'Action Plan Complete — Re-run Analysis to Verify',
+    stepsDone: 'steps done',
+    daysActive: '{days}d active',
+    onFire: 'On fire!',
+    rerunToVerify: 'Re-run analysis to see your improvement',
+
+    // Outcome Ownership
+    outcome: {
+      // OutcomeTimeline
+      timelineTitle: 'Risk Score Timeline',
+      timelineSub: 'Track how your risk score evolves over time',
+      analyses: 'analyses',
+
+      // ImprovementProof
+      improvedTitle: 'You reduced risk by {points} points in {days} days',
+      improvedSub: 'Your actions are making a measurable difference',
+      noChangeTitle: 'Your risk score hasn\'t changed yet',
+      noChangeSub: 'Complete more action steps to see improvement',
+      actualChange: 'Actual',
+      predicted: 'Predicted',
+      stepsCompleted: 'Steps Done',
+      executionProgress: 'Execution Progress',
+
+      // AccountabilityBanner
+      staleTitle: 'Your plan needs attention',
+      staleMessage: 'No activity in {days} days — pick up where you left off',
+      onTrackTitle: 'Execution in progress',
+      progressMessage: '{completed} of {total} steps completed — keep going!',
+      steps: 'steps',
+
+      // SmartFollowUp
+      followUpTitle: 'What to Do Next',
+    },
   },
 } as const;
 

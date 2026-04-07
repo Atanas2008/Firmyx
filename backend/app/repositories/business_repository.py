@@ -12,8 +12,18 @@ class BusinessRepository:
     def get_by_id(self, business_id: UUID) -> Optional[Business]:
         return self.db.query(Business).filter(Business.id == business_id).first()
 
-    def get_by_owner(self, owner_id: UUID) -> List[Business]:
-        return self.db.query(Business).filter(Business.owner_id == owner_id).all()
+    def get_by_owner(self, owner_id: UUID, skip: int = 0, limit: int = 100) -> List[Business]:
+        return (
+            self.db.query(Business)
+            .filter(Business.owner_id == owner_id)
+            .order_by(Business.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def count_by_owner(self, owner_id: UUID) -> int:
+        return self.db.query(Business).filter(Business.owner_id == owner_id).count()
 
     def create(self, owner_id: UUID, data: BusinessCreate) -> Business:
         business = Business(owner_id=owner_id, **data.model_dump())

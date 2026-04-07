@@ -57,14 +57,17 @@ export function FinancialHealthCard({ analysis }: FinancialHealthCardProps) {
   // Determine colour tier (higher health score = safer)
   // health_score = 100 − risk_score, so thresholds mirror risk levels:
   //   ≥ 70 → Low Risk     (risk_score 0–30)
-  //   ≥ 40 → Moderate Risk (risk_score 30–60)
-  //   < 40 → High Risk     (risk_score 60–100)
+  //   ≥ 50 → Medium Risk  (risk_score 30–50)
+  //   ≥ 30 → High Risk    (risk_score 50–70)
+  //   < 30 → Critical     (risk_score 70–100)
   const tier =
     score >= 70
-      ? { label: t.risk.lowRisk,      color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-300',  border: 'border-emerald-200 dark:border-emerald-800'  }
-      : score >= 40
-      ? { label: t.risk.moderateRisk, color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/30',    text: 'text-amber-700 dark:text-amber-300',    border: 'border-amber-200 dark:border-amber-800'    }
-      : { label: t.risk.highRisk,     color: '#ef4444', bg: 'bg-red-50 dark:bg-red-900/30',      text: 'text-red-700 dark:text-red-300',      border: 'border-red-200 dark:border-red-800'      };
+      ? { label: t.risk.low ?? t.risk.lowRisk,           color: '#10b981', bg: 'bg-emerald-50 dark:bg-emerald-900/30',  text: 'text-emerald-700 dark:text-emerald-300',  border: 'border-emerald-200 dark:border-emerald-800'  }
+      : score >= 50
+      ? { label: t.risk.medium ?? t.risk.moderateRisk,   color: '#f59e0b', bg: 'bg-amber-50 dark:bg-amber-900/30',    text: 'text-amber-700 dark:text-amber-300',    border: 'border-amber-200 dark:border-amber-800'    }
+      : score >= 30
+      ? { label: t.risk.high ?? t.risk.highRisk,         color: '#f97316', bg: 'bg-orange-50 dark:bg-orange-900/30',  text: 'text-orange-700 dark:text-orange-300',  border: 'border-orange-200 dark:border-orange-800'  }
+      : { label: t.risk.critical ?? 'Critical Risk',     color: '#ef4444', bg: 'bg-red-50 dark:bg-red-900/30',      text: 'text-red-700 dark:text-red-300',      border: 'border-red-200 dark:border-red-800'      };
 
   // SVG arc parameters for the gauge
   const radius = 54;
@@ -130,15 +133,29 @@ export function FinancialHealthCard({ analysis }: FinancialHealthCardProps) {
 
       {/* Bankruptcy Probability */}
       {probability !== null && (
-        <div className={`rounded-xl border p-4 text-center ${tier.bg} ${tier.border}`}>
+        <div className={`rounded-xl border p-4 ${tier.bg} ${tier.border}`}>
           <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1 flex items-center justify-center gap-1">{t.health.bankruptcyProbability} <InfoTooltip text={t.health.bankruptcyTooltip} /></p>
-          <p className={`text-3xl font-bold ${tier.text}`}>{probability.toFixed(0)}%</p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className={`text-3xl font-bold text-center ${tier.text}`}>{probability.toFixed(0)}%</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-center">
             {probability <= 10
               ? t.health.safeZone
               : probability <= 20
               ? t.health.greyZone
               : t.health.distressZone}
+          </p>
+          <p className="mt-2 text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+            {t.health.bankruptcyDrivenBy}{' '}
+            {analysis.altman_z_score >= 3
+              ? t.health.zScoreSafe.replace('{z}', analysis.altman_z_score.toFixed(2))
+              : analysis.altman_z_score >= 1.8
+              ? t.health.zScoreGrey.replace('{z}', analysis.altman_z_score.toFixed(2))
+              : t.health.zScoreDistress.replace('{z}', analysis.altman_z_score.toFixed(2))}
+            {analysis.debt_ratio >= 0.6
+              ? ' ' + t.health.highDebtContributes.replace('{d}', (analysis.debt_ratio * 100).toFixed(0))
+              : ''}
+            {analysis.liquidity_ratio < 1.0
+              ? ' ' + t.health.lowLiquidityContributes.replace('{l}', analysis.liquidity_ratio.toFixed(2))
+              : ''}
           </p>
         </div>
       )}

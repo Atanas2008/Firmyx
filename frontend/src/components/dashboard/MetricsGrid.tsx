@@ -67,7 +67,7 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
     {
       label: t.metrics.cashRunway,
       value: analysis.burn_rate === 0
-        ? t.metrics.notAtRisk
+        ? 'CF+'
         : isRunwayNotApplicable
         ? t.common.notApplicable
         : `${analysis.cash_runway_months!.toFixed(1)} ${t.common.mo}`,

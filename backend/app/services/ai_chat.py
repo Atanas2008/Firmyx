@@ -27,7 +27,7 @@ class AIChatService:
 
     def __init__(self) -> None:
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = "gemini-2.0-flash"
+        self.model = "gemini-2.5-flash"
 
     # ------------------------------------------------------------------
     # System prompt builder

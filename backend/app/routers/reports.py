@@ -2,48 +2,38 @@ import os
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.user import User
+from app.models.business import Business
 from app.schemas.report import ReportRead, ReportGenerateRequest
-from app.repositories.business_repository import BusinessRepository
 from app.repositories.risk_analysis_repository import RiskAnalysisRepository
 from app.repositories.financial_record_repository import FinancialRecordRepository
-from app.services.auth_service import get_current_user
 from app.services.report_generator import ReportGenerator
 from app.services.forecasting import calculate_forecast
-from app.services.scenario import simulate_scenario
+from app.dependencies import get_owned_business
+from app.config import settings
+from app.middleware.rate_limiter import limiter
 
 router = APIRouter()
 
 
-def _assert_business_owner(business_id: UUID, current_user: User, db: Session):
-    business = BusinessRepository(db).get_by_id(business_id)
-    if not business:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
-    if business.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    return business
-
-
 @router.post("/{business_id}/reports", response_model=ReportRead, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 def generate_report(
-    business_id: UUID,
+    request: Request,
     payload: ReportGenerateRequest | None = None,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Generate a PDF financial health report based on the most recent risk analysis
     for the specified business.
     """
-    business = _assert_business_owner(business_id, current_user, db)
-
     analysis_repo = RiskAnalysisRepository(db)
-    analyses = analysis_repo.get_by_business(business_id)
+    analyses = analysis_repo.get_by_business(business.id)
     if not analyses:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -53,7 +43,7 @@ def generate_report(
     selected_analysis = analyses[0]
     if payload and payload.analysis_id:
         found = analysis_repo.get_by_id(payload.analysis_id)
-        if not found or found.business_id != business_id:
+        if not found or found.business_id != business.id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Selected analysis was not found for this business.",
@@ -65,7 +55,7 @@ def generate_report(
     # CHANGED: Optionally generate forecast data for the report
     forecast_data = None
     record_repo = FinancialRecordRepository(db)
-    latest_record = record_repo.get_latest(business_id)
+    latest_record = record_repo.get_latest(business.id)
     if latest_record:
         forecast_data = calculate_forecast(
             current_revenue=float(latest_record.monthly_revenue or 0),
@@ -80,7 +70,7 @@ def generate_report(
     filepath = generator.generate(business, selected_analysis, forecast_data=forecast_data)
 
     report_data = {
-        "business_id": business_id,
+        "business_id": business.id,
         "risk_analysis_id": selected_analysis.id,
         "report_type": "pdf",
         "file_path": filepath,
@@ -90,33 +80,37 @@ def generate_report(
 
 @router.get("/{business_id}/reports", response_model=List[ReportRead])
 def list_reports(
-    business_id: UUID,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """List all generated reports for a business."""
-    _assert_business_owner(business_id, current_user, db)
-    return RiskAnalysisRepository(db).get_reports_by_business(business_id)
+    return RiskAnalysisRepository(db).get_reports_by_business(business.id)
 
 
 @router.get("/{business_id}/reports/{report_id}/download")
 def download_report(
-    business_id: UUID,
     report_id: UUID,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Download a previously generated PDF report."""
-    _assert_business_owner(business_id, current_user, db)
-
     report = RiskAnalysisRepository(db).get_report_by_id(report_id)
-    if not report or report.business_id != business_id:
+    if not report or report.business_id != business.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found.")
 
     if not os.path.exists(report.file_path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Report file is no longer available on disk.",
+        )
+
+    # Path traversal protection: ensure the file is within REPORTS_DIR
+    real_path = os.path.realpath(report.file_path)
+    reports_dir = os.path.realpath(settings.REPORTS_DIR)
+    if not real_path.startswith(reports_dir + os.sep):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied.",
         )
 
     return FileResponse(

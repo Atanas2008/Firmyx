@@ -11,6 +11,7 @@ import {
   Plus,
   Calendar,
   Trash2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { businessApi, financialApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -160,6 +161,7 @@ export default function FinancialsPage() {
           { label: t.nav.overview, href: `/businesses/${id}`, icon: Building2 },
           { label: t.nav.financials, href: `/businesses/${id}/financials`, icon: DollarSign },
           { label: t.nav.analysis, href: `/businesses/${id}/analysis`, icon: BarChart3 },
+          { label: t.nav.scenario, href: `/businesses/${id}/scenario`, icon: SlidersHorizontal },
           { label: t.nav.reports, href: `/businesses/${id}/reports`, icon: FileText },
         ].map(({ label, href, icon: Icon }) => (
           <Link

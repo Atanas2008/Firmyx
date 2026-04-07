@@ -1,14 +1,13 @@
 'use client';
 
-import { LogOut, User, Sun, Moon, Monitor } from 'lucide-react';
+import { LogOut, Sun, Moon, Monitor } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useLanguage } from '@/hooks/useLanguage';
-import { Button } from '@/components/ui/Button';
 
 export function Header({ onMenuToggle }: { onMenuToggle?: () => void }) {
-  const { user, logout } = useAuth();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
 
   function cycleTheme() {
@@ -18,16 +17,15 @@ export function Header({ onMenuToggle }: { onMenuToggle?: () => void }) {
   }
 
   const ThemeIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor;
-  const themeLabel = theme === 'dark' ? t.theme.dark : theme === 'light' ? t.theme.light : t.theme.auto;
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6">
-      <div>
+    <header className="flex h-14 items-center justify-between border-b border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-950 px-6">
+      <div className="flex items-center gap-2">
         {onMenuToggle && (
           <button
             type="button"
             onClick={onMenuToggle}
-            className="md:hidden rounded-lg p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="md:hidden rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Toggle menu"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -36,34 +34,34 @@ export function Header({ onMenuToggle }: { onMenuToggle?: () => void }) {
           </button>
         )}
       </div>
-      <div className="flex items-center gap-4">
-        {user && (
-          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </div>
-            <span className="font-medium">{user.full_name || user.email}</span>
-          </div>
-        )}
+      <div className="flex items-center gap-1">
         {/* Language toggle */}
         <button
           type="button"
           onClick={() => setLanguage(language === 'en' ? 'bg' : 'en')}
-          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           title={t.language.title}
         >
-          <span className={language === 'en' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}>EN</span>
-          <span className="text-gray-300 dark:text-gray-600">|</span>
-          <span className={language === 'bg' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}>BG</span>
+          <span className={language === 'en' ? 'text-blue-600 dark:text-blue-400 font-semibold' : ''}>EN</span>
+          <span className="text-gray-300 dark:text-gray-700">/</span>
+          <span className={language === 'bg' ? 'text-blue-600 dark:text-blue-400 font-semibold' : ''}>BG</span>
         </button>
-        <Button variant="ghost" size="sm" onClick={cycleTheme} title={themeLabel}>
+        <button
+          type="button"
+          onClick={cycleTheme}
+          className="rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          title={t.theme.title}
+        >
           <ThemeIcon className="h-4 w-4" />
-          <span className="hidden sm:inline text-xs">{themeLabel}</span>
-        </Button>
-        <Button variant="ghost" size="sm" onClick={logout}>
+        </button>
+        <button
+          type="button"
+          onClick={logout}
+          className="rounded-lg p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+          title={t.auth.signOut}
+        >
           <LogOut className="h-4 w-4" />
-          {t.auth.signOut}
-        </Button>
+        </button>
       </div>
     </header>
   );

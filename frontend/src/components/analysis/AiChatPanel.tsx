@@ -9,6 +9,7 @@ import type { RiskAnalysis } from '@/types';
 interface AiChatPanelProps {
   businessId: string;
   analysis: RiskAnalysis;
+  onAskRef?: React.MutableRefObject<((question: string) => void) | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -21,7 +22,7 @@ function getSuggestedQuestions(analysis: RiskAnalysis): string[] {
   questions.push(`Why is my risk score ${Math.round(analysis.risk_score)}?`);
   questions.push('Explain my Altman Z-Score in simple terms');
 
-  if (analysis.risk_score > 60) {
+  if (analysis.risk_score > 70) {
     questions.push('What are the most urgent things I should fix?');
   } else {
     questions.push('What can I do to keep improving my financial health?');
@@ -77,7 +78,7 @@ function TypingIndicator() {
 // Component
 // ---------------------------------------------------------------------------
 
-export function AiChatPanel({ businessId, analysis }: AiChatPanelProps) {
+export function AiChatPanel({ businessId, analysis, onAskRef }: AiChatPanelProps) {
   const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -99,6 +100,20 @@ export function AiChatPanel({ businessId, analysis }: AiChatPanelProps) {
   useEffect(() => {
     if (isExpanded) inputRef.current?.focus();
   }, [isExpanded]);
+
+  // Expose ask method to parent via ref
+  useEffect(() => {
+    if (onAskRef) {
+      onAskRef.current = (question: string) => {
+        setIsExpanded(true);
+        // Slight delay to allow panel to open before sending
+        setTimeout(() => sendMessage(question), 100);
+      };
+    }
+    return () => {
+      if (onAskRef) onAskRef.current = null;
+    };
+  });
 
   // ------------------------------------------------------------------
   // Send
@@ -170,7 +185,7 @@ export function AiChatPanel({ businessId, analysis }: AiChatPanelProps) {
   const suggested = getSuggestedQuestions(analysis);
 
   return (
-    <div className="fixed bottom-4 right-4 left-4 sm:left-[calc(240px+1.5rem)] z-30 flex flex-col rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl" style={{ height: '420px' }}>
+    <div className="fixed bottom-4 right-4 left-4 sm:left-[calc(240px+1.5rem)] z-30 flex flex-col rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl" style={{ height: 'min(420px, 70vh)' }}>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-2.5">
         <div className="flex items-center gap-2">
@@ -208,7 +223,7 @@ export function AiChatPanel({ businessId, analysis }: AiChatPanelProps) {
                 key={q}
                 type="button"
                 onClick={() => sendMessage(q)}
-                className="rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 text-xs text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                className="rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 sm:py-1 text-xs text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
               >
                 {q}
               </button>

@@ -3,6 +3,8 @@ import './globals.css';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { LanguageProvider } from '@/hooks/useLanguage';
+import { ToastProvider } from '@/components/ui/Toast';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'Firmyx — Financial Risk Detection',
@@ -29,11 +31,15 @@ export default function RootLayout({
         `}} />
       </head>
       <body className="bg-gray-50 dark:bg-gray-900 antialiased">
-        <ThemeProvider>
-          <LanguageProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider>
+            <LanguageProvider>
+              <ToastProvider>
+                <AuthProvider>{children}</AuthProvider>
+              </ToastProvider>
+            </LanguageProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

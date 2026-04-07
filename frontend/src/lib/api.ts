@@ -12,6 +12,7 @@ import type {
   User,
   ForecastResult,
   ForecastScenario,
+  MultiScenarioForecast,
   ScenarioAdjustments,
   ScenarioResult,
   ScenarioPreset,
@@ -110,6 +111,8 @@ export const analysisApi = {
     ),
   forecast: (businessId: string, months: number = 12, scenario: ForecastScenario = 'baseline') =>
     apiClient.post<ForecastResult>(`/businesses/${businessId}/forecast`, { months, scenario }),
+  forecastAllScenarios: (businessId: string, months: number = 12) =>
+    apiClient.post<MultiScenarioForecast>(`/businesses/${businessId}/forecast/all-scenarios`, { months }),
   scenarioPresets: (businessId: string) =>
     apiClient.get<ScenarioPreset[]>(`/businesses/${businessId}/scenario/presets`),
   scenario: (businessId: string, adjustments: ScenarioAdjustments) =>

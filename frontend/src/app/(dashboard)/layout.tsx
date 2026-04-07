@@ -27,7 +27,7 @@ export default function DashboardLayout({
   if (!isLoggedIn) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <Sidebar />
@@ -37,10 +37,10 @@ export default function DashboardLayout({
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div
-            className="fixed inset-0 bg-black/50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 z-50 w-60">
+          <div className="fixed inset-y-0 left-0 z-50 w-[240px] animate-slide-in-right">
             <Sidebar onNavigate={() => setSidebarOpen(false)} />
           </div>
         </div>
@@ -48,8 +48,10 @@ export default function DashboardLayout({
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header onMenuToggle={() => setSidebarOpen((o) => !o)} />
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-6xl px-6 py-6">
+            {children}
+          </div>
           <ScrollToTop />
         </main>
       </div>

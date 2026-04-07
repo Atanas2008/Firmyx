@@ -1,6 +1,7 @@
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { useLanguage } from '@/hooks/useLanguage';
 import { formatCurrency, formatPercent } from '@/lib/utils';
+import { buildValidatedMetrics } from '@/lib/aiInsights';
 import type { RiskAnalysis } from '@/types';
 
 interface MetricsTableProps {
@@ -32,8 +33,7 @@ function trendArrow(value: number): string {
 
 export function MetricsTable({ analysis }: MetricsTableProps) {
   const { t } = useLanguage();
-  const isRunwayNotApplicable =
-    analysis.cash_runway_months === null;
+  const m = buildValidatedMetrics(analysis);
 
   const rows: MetricRow[] = [
     {
@@ -50,20 +50,16 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
     },
     {
       label: t.metrics.cashRunway,
-      value: analysis.burn_rate === 0
-        ? t.metrics.notAtRisk
-        : isRunwayNotApplicable
-        ? t.common.notApplicable
-        : `${analysis.cash_runway_months!.toFixed(1)} ${t.common.months}`,
+      value: m.runway_label,
       status: analysis.burn_rate === 0
+        ? (m.is_working_capital_constrained ? 'warn'
+          : m.runway_label.includes('Limited') ? 'warn'
+          : 'good')
+        : m.runway_label.includes('critical') ? 'bad'
+        : m.runway_label.includes('tight') ? 'warn'
+        : analysis.cash_runway_months !== null && analysis.cash_runway_months >= 12
         ? 'good'
-        : isRunwayNotApplicable
-        ? 'neutral'
-        : analysis.cash_runway_months! >= 12
-        ? 'good'
-        : analysis.cash_runway_months! >= 6
-        ? 'warn'
-        : 'bad',
+        : 'warn',
       description: t.metrics.cashRunwayDesc,
     },
     {
@@ -80,18 +76,16 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
     },
     {
       label: t.metrics.revenueTrend,
-      value: analysis.revenue_trend === null
+      value: m.revenue_trend_label === 'Insufficient data'
         ? t.common.notApplicable
-        : analysis.revenue_trend === 0
-        ? t.metrics.stable
-        : `${trendArrow(analysis.revenue_trend)}${formatPercent(analysis.revenue_trend * 100)}`,
-      status: analysis.revenue_trend === null
-        ? 'neutral'
-        : analysis.revenue_trend * 100 >= 5
+        : `${m.revenue_trend_label} (${(m.revenue_trend_value * 100).toFixed(1)}%)`,
+      status: m.revenue_trend_label === 'Increasing'
         ? 'good'
-        : analysis.revenue_trend >= 0
+        : m.revenue_trend_label === 'Declining'
+        ? 'bad'
+        : m.revenue_trend_label === 'Flat'
         ? 'warn'
-        : 'bad',
+        : 'neutral',
       description: t.metrics.revenueTrendDesc,
     },
     {

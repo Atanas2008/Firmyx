@@ -215,12 +215,16 @@ GET    /api/businesses/{id}/reports/{id}/download  # Download report
 
 ## 🚧 Roadmap
 
-- [ ] 12-month financial forecasting
-- [ ] Scenario simulation ("what if" analysis)
+- [x] 12-month financial forecasting
+- [x] Scenario simulation ("what if" analysis)
+- [x] Multi-language support (English + Bulgarian)
+- [x] AI business advisor (Gemini-powered)
+- [x] Industry-specific risk models
 - [ ] Email notifications when risk increases
 - [ ] Weekly health email digest
-- [ ] Multi-language support
+- [ ] Team collaboration (shared business access)
 - [ ] Integration with accounting software (QuickBooks, Xero)
+- [ ] Mobile app (React Native)
 
 ---
 
@@ -228,7 +232,7 @@ GET    /api/businesses/{id}/reports/{id}/download  # Download report
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 14, React 18, TypeScript, Tailwind CSS |
+| Frontend | Next.js 15, React 18, TypeScript, Tailwind CSS |
 | Charts | Recharts |
 | Backend | Python 3.11, FastAPI |
 | Database | PostgreSQL 15 |
@@ -236,8 +240,53 @@ GET    /api/businesses/{id}/reports/{id}/download  # Download report
 | Auth | JWT (python-jose) + bcrypt |
 | File Parsing | pandas, openpyxl |
 | PDF Generation | ReportLab |
-| Rate Limiting | slowapi |
+| AI | Google Gemini 2.0 Flash |
+| Rate Limiting | slowapi + Redis |
 | Containerization | Docker, Docker Compose |
+| CI/CD | GitHub Actions |
+
+---
+
+## ☁️ Production Deployment
+
+### Option A: Docker (Railway/Render)
+
+```bash
+# Build production containers
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### Option B: Separate services
+
+| Service | Provider | Notes |
+|---------|----------|-------|
+| Frontend | Vercel | Connect repo, set `NEXT_PUBLIC_API_URL` |
+| Backend | Railway / Render | Set env vars from `.env.example` |
+| Database | Supabase / Neon | PostgreSQL, set `DATABASE_URL` |
+| Redis | Upstash / Railway | For rate limiting |
+
+### Environment Setup
+
+1. Copy and fill `.env.example` files for both backend and frontend
+2. Generate a secure `SECRET_KEY`: `python -c "import secrets; print(secrets.token_hex(32))"`
+3. Run database migrations: `alembic upgrade head`
+4. Configure CORS `ALLOWED_ORIGINS` for your production domain
+
+---
+
+## 🧪 Testing
+
+```bash
+# Backend tests
+cd backend
+pip install -r requirements.txt
+pytest -v --cov=app
+
+# Frontend lint + type check
+cd frontend
+npm run lint
+npx tsc --noEmit
+```
 
 ---
 

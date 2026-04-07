@@ -1,29 +1,41 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Play, Building2, DollarSign, BarChart3, FileText } from 'lucide-react';
+import { Play, Building2, DollarSign, BarChart3, FileText, SlidersHorizontal } from 'lucide-react';
 import { businessApi, analysisApi, financialApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { RiskScoreDisplay } from '@/components/analysis/RiskScoreDisplay';
-import { MetricsGrid } from '@/components/dashboard/MetricsGrid';
-import { MetricsTable } from '@/components/analysis/MetricsTable';
-import { RecommendationsList } from '@/components/analysis/RecommendationsList';
+import { DecisionHeader } from '@/components/analysis/DecisionHeader';
+import { ExecutiveSummary } from '@/components/analysis/ExecutiveSummary';
+import { KeyMetricsGrouped } from '@/components/analysis/KeyMetricsGrouped';
+import { RiskBreakdown } from '@/components/analysis/RiskBreakdown';
+import { SmartRecommendations } from '@/components/analysis/SmartRecommendations';
 import { RevenueExpenseChart } from '@/components/dashboard/charts/RevenueExpenseChart';
 import { RunwayChart } from '@/components/dashboard/charts/RunwayChart';
-import { FinancialHealthCard } from '@/components/analysis/FinancialHealthCard';
-import { IndustryBenchmarkTable } from '@/components/analysis/IndustryBenchmarkTable';
-import { AiFinancialSummary } from '@/components/analysis/AiFinancialSummary';
-import { ExecutiveSummaryCard } from '@/components/analysis/ExecutiveSummaryCard';
-import { SmartRecommendations } from '@/components/analysis/SmartRecommendations';
 import { ForecastChart } from '@/components/analysis/ForecastChart';
-import { ScenarioSimulator } from '@/components/analysis/ScenarioSimulator';
+import { IndustryBenchmarkTable } from '@/components/analysis/IndustryBenchmarkTable';
 import { AiChatPanel } from '@/components/analysis/AiChatPanel';
+import { AskAiButton } from '@/components/analysis/AskAiButton';
+import { StatusBar } from '@/components/analysis/StatusBar';
+import { PrimaryAction } from '@/components/analysis/PrimaryAction';
+import { ScoreDecomposition } from '@/components/analysis/ScoreDecomposition';
+import { DataConfidence } from '@/components/analysis/DataConfidence';
+import { SmartScenarioSuggestion } from '@/components/analysis/SmartScenarioSuggestion';
+import { CostOfInaction } from '@/components/analysis/CostOfInaction';
+import { PeerComparison } from '@/components/analysis/PeerComparison';
+import { ActionPlan } from '@/components/analysis/ActionPlan';
+import { ExecutionTracker } from '@/components/analysis/ExecutionTracker';
+import { ImprovementProof } from '@/components/analysis/ImprovementProof';
+import { AccountabilityBanner } from '@/components/analysis/AccountabilityBanner';
+import { OutcomeTimeline } from '@/components/analysis/OutcomeTimeline';
+import { SmartFollowUp } from '@/components/analysis/SmartFollowUp';
+import { RecommendationsList } from '@/components/analysis/RecommendationsList';
 import { getBenchmark } from '@/lib/benchmarks';
 import type { Business, RiskAnalysis, FinancialRecord } from '@/types';
 
@@ -38,6 +50,11 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const askAiRef = useRef<((question: string) => void) | null>(null);
+
+  const askAi = useCallback((question: string) => {
+    askAiRef.current?.(question);
+  }, []);
 
   function extractErrorMessage(err: unknown): string {
     const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
@@ -157,7 +174,7 @@ export default function AnalysisPage() {
           { label: t.nav.analysis },
         ]}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <Button
               variant="secondary"
               onClick={runLatestAnalysis}
@@ -189,11 +206,12 @@ export default function AnalysisPage() {
       />
 
       {/* Navigation tabs */}
-      <div className="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700">
+      <div className="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700 overflow-x-auto scrollbar-hide -mx-1 px-1">
         {[
           { label: t.nav.overview, href: `/businesses/${id}`, icon: Building2 },
           { label: t.nav.financials, href: `/businesses/${id}/financials`, icon: DollarSign },
           { label: t.nav.analysis, href: `/businesses/${id}/analysis`, icon: BarChart3 },
+          { label: t.nav.scenario, href: `/businesses/${id}/scenario`, icon: SlidersHorizontal },
           { label: t.nav.reports, href: `/businesses/${id}/reports`, icon: FileText },
         ].map(({ label, href, icon: Icon }) => (
           <Link
@@ -222,11 +240,11 @@ export default function AnalysisPage() {
         </div>
       )}
 
-      <div className="mb-4 inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1 gap-1">
+      <div className="mb-4 inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1 gap-1 w-full sm:w-auto">
         <button
           type="button"
           onClick={() => setActiveScope('monthly')}
-          className={`rounded-md px-4 py-1.5 text-xs font-medium transition-all ${
+          className={`flex-1 sm:flex-initial rounded-md px-4 py-2 sm:py-1.5 text-xs font-medium transition-all ${
             activeScope === 'monthly'
               ? 'bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 shadow-sm'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -237,7 +255,7 @@ export default function AnalysisPage() {
         <button
           type="button"
           onClick={() => setActiveScope('combined')}
-          className={`rounded-md px-4 py-1.5 text-xs font-medium transition-all ${
+          className={`flex-1 sm:flex-initial rounded-md px-4 py-2 sm:py-1.5 text-xs font-medium transition-all ${
             activeScope === 'combined'
               ? 'bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 shadow-sm'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -276,11 +294,8 @@ export default function AnalysisPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Stale-analysis warning — shown when the stored result was computed
-              with an older scoring model (model version < "2.0"). All analyses
-              generated after the 2026-03-12 scoring update are stamped with
-              calculation_sources.scoring_model_version = "2.0". */}
-          {latest.calculation_sources?.scoring_model_version !== '2.0' && (
+          {/* Stale-analysis warning */}
+          {latest.calculation_sources?.scoring_model_version !== '3.0' && (
             <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 px-4 py-3">
               <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -302,23 +317,106 @@ export default function AnalysisPage() {
             </div>
           )}
 
-          {/* Score */}
-          <Card title={t.analysis.riskAssessment} subtitle={t.analysis.riskAssessmentSubtitle}>
-            <RiskScoreDisplay analysis={latest} />
-          </Card>
+          {/* 0. STATUS BAR — Consolidated score trend + top risk + alerts */}
+          <StatusBar
+            analysis={latest}
+            analyses={activeScope === 'combined' ? combinedAnalyses : monthlyAnalyses}
+            scenarioHref={`/businesses/${id}/scenario`}
+          />
 
-          {/* AI Financial Summary */}
+          {/* 0b. EXECUTION TRACKER — Progress widget (only shows when user has started) */}
+          <ExecutionTracker analysis={latest} businessId={id} />
+
+          {/* 0c. IMPROVEMENT PROOF — "You reduced risk by X points in Y days" */}
+          <ImprovementProof analyses={activeScope === 'combined' ? combinedAnalyses : monthlyAnalyses} businessId={id} />
+
+          {/* 1. TELL — Decision Header (sticky-feel top section) */}
+          <DecisionHeader analysis={latest} scenarioHref={`/businesses/${id}/scenario`} />
+
+          {/* 2. DO THIS FIRST — Primary Action hero */}
+          <PrimaryAction analysis={latest} scenarioHref={`/businesses/${id}/scenario`} />
+
+          {/* 2a. ACCOUNTABILITY — Progress banner with gentle pressure */}
+          <AccountabilityBanner analysis={latest} businessId={id} />
+
+          {/* 2b. LOSS AVERSION — Cost of Inaction ticker */}
+          <CostOfInaction analysis={latest} scenarioHref={`/businesses/${id}/scenario`} />
+
+          {/* 3. EXPLAIN — Executive Summary (single merged block) */}
           <Card>
-            <AiFinancialSummary analysis={latest} />
+            <ExecutiveSummary analysis={latest} businessName={business?.name} />
           </Card>
 
-          {/* Metrics grid */}
-          <Card title={t.analysis.keyMetrics} subtitle={t.analysis.keyMetricsSubtitle}>
-            <MetricsGrid analysis={latest} />
+          {/* 4. TRUST — Data Confidence indicator */}
+          <DataConfidence analysis={latest} />
+
+          {/* 5. PROVE — Key Metrics (3 groups) */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t.decision.keyMetrics ?? 'Key Metrics'}</h3>
+              <AskAiButton question="Explain my key financial metrics and what they mean for my business" onAsk={askAi} label={t.chat.askAi} />
+            </div>
+            <KeyMetricsGrouped analysis={latest} />
+          </div>
+
+          {/* 5b. SOCIAL PROOF — Peer Comparison */}
+          {business && <PeerComparison analysis={latest} business={business} />}
+
+          {/* 6. PROVE — Score Decomposition (formula transparency) */}
+          <Card title={t.enterprise.scoreBreakdown} subtitle={t.enterprise.scoreBreakdownSub}>
+            <ScoreDecomposition analysis={latest} />
           </Card>
 
-          {/* Charts row */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* 7. PROVE — Risk Score Breakdown */}
+          <Card
+            title={t.decision.riskBreakdown}
+            subtitle={t.decision.riskBreakdownSubtitle}
+            actions={<AskAiButton question={`Why is my risk score ${Math.round(latest.risk_score)}? Break down each risk component`} onAsk={askAi} label={t.chat.askAi} />}
+          >
+            <RiskBreakdown analysis={latest} />
+          </Card>
+
+          {/* 8. ACT — Recommendations */}
+          <Card
+            title={t.decision.recommendations}
+            subtitle={t.decision.recommendationsSubtitle}
+            actions={<AskAiButton question="What are the most impactful actions I can take right now to reduce my risk score?" onAsk={askAi} label={t.chat.askAi} />}
+          >
+            <SmartRecommendations analysis={latest} scenarioHref={`/businesses/${id}/scenario`} />
+          </Card>
+
+          {/* 8a. JUSTIFY — Audit-grade recommendations with justification layer */}
+          {latest.recommendations && latest.recommendations.length > 0 && (
+            <Card title={t.decision.justifiedRecommendations ?? 'Justified Recommendations'} subtitle={t.decision.justifiedRecommendationsSub ?? 'Each recommendation includes quantitative justification — investor-defensible and audit-grade'}>
+              <RecommendationsList recommendations={latest.recommendations} />
+            </Card>
+          )}
+
+          {/* 8b. EXECUTE — Action Plan (step-by-step checklist) */}
+          <div id="action-plan-section">
+            <ActionPlan analysis={latest} businessId={id} />
+          </div>
+
+          {/* 8c. OUTCOME TIMELINE — Risk score over time */}
+          <OutcomeTimeline analyses={activeScope === 'combined' ? combinedAnalyses : monthlyAnalyses} />
+
+          {/* 9. ACT — Smart Scenario Suggestion */}
+          <SmartScenarioSuggestion
+            analysis={latest}
+            businessId={id}
+            scenarioHref={`/businesses/${id}/scenario`}
+          />
+
+          {/* 9a. SMART FOLLOW-UP — Next best action / new bottleneck */}
+          <SmartFollowUp
+            analyses={activeScope === 'combined' ? combinedAnalyses : monthlyAnalyses}
+            businessId={id}
+            onRerun={runLatestAnalysis}
+            scenarioHref={`/businesses/${id}/scenario`}
+          />
+
+          {/* 6. Charts — Revenue vs Expenses + Runway */}
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
             <Card title={t.analysis.revenueVsExpenses} subtitle={t.analysis.revenueVsExpensesSubtitle}>
               <RevenueExpenseChart records={financials} />
             </Card>
@@ -329,25 +427,16 @@ export default function AnalysisPage() {
             )}
           </div>
 
-          {/* 12-Month Forecast */}
+          {/* 7. 12-Month Forecast */}
           <Card title={t.analysis.forecast} subtitle={t.analysis.forecastSubtitle}>
             <ForecastChart businessId={id} />
           </Card>
 
-          {/* Scenario Simulator */}
-          <Card title={t.analysis.scenarioAnalysis} subtitle={t.analysis.scenarioSubtitle}>
-            <ScenarioSimulator businessId={id} />
-          </Card>
-
-          {/* Detailed metrics table */}
-          <Card title={t.analysis.detailedMetrics} subtitle={t.analysis.detailedMetricsSubtitle}>
-            <MetricsTable analysis={latest} />
-          </Card>
-
-          <Card title={t.analysis.calculationSources} subtitle={t.analysis.calculationSourcesSubtitle}>
+          {/* 8. Calculation Sources */}
+          <CollapsibleSection title={t.analysis.calculationSources} subtitle={t.analysis.calculationSourcesSubtitle}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {Object.entries(sourceLabels).map(([key, label]) => {
-                const source = latest.calculation_sources?.[key] ?? 'unknown';
+                const source = String(latest.calculation_sources?.[key] ?? 'unknown');
                 const isProvided = source === 'provided';
                 const sourceText = sourceDescriptions[source] ?? `Fallback (${source})`;
                 return (
@@ -360,48 +449,26 @@ export default function AnalysisPage() {
                 );
               })}
             </div>
-          </Card>
+          </CollapsibleSection>
 
-          {/* Smart AI Recommendations */}
-          <Card title={t.analysis.aiRecommendations} subtitle={t.analysis.aiRecommendationsSubtitle}>
-            <SmartRecommendations analysis={latest} />
-          </Card>
-
-          {/* Static backend recommendations (fallback / supplementary) */}
-          {latest.recommendations && latest.recommendations.length > 0 && (
-            <Card title={t.analysis.additionalInsights} subtitle={t.analysis.additionalInsightsSubtitle}>
-              <RecommendationsList recommendations={latest.recommendations} />
-            </Card>
+          {/* 9. Industry Benchmark */}
+          {business && (
+            <CollapsibleSection title={t.analysis.industryBenchmark} subtitle={t.analysis.industryBenchmarkSubtitle}>
+              <IndustryBenchmarkTable
+                analysis={latest}
+                benchmark={getBenchmark(business.industry)}
+                industryName={business.industry}
+              />
+            </CollapsibleSection>
           )}
-
-          {/* Executive Summary */}
-          <Card>
-            <ExecutiveSummaryCard analysis={latest} businessName={business?.name} />
-          </Card>
-
-          {/* Financial Health Score + Bankruptcy Probability */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card title={t.analysis.financialHealthScore} subtitle={t.analysis.financialHealthSubtitle}>
-              <FinancialHealthCard analysis={latest} />
-            </Card>
-
-            {/* Industry Benchmark Comparison */}
-            {business && (
-              <Card title={t.analysis.industryBenchmark} subtitle={t.analysis.industryBenchmarkSubtitle}>
-                <IndustryBenchmarkTable
-                  analysis={latest}
-                  benchmark={getBenchmark(business.industry)}
-                  industryName={business.industry}
-                />
-              </Card>
-            )}
-          </div>
         </div>
       )}
     </div>
 
-    {/* AI Chat Panel — fixed at bottom of viewport */}
-    {latest && <AiChatPanel businessId={id} analysis={latest} />}
+    {/* AI Chat Panel */}
+    {latest && (
+      <AiChatPanel businessId={id} analysis={latest} onAskRef={askAiRef} />
+    )}
     </>
   );
 }

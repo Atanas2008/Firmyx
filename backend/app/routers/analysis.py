@@ -6,40 +6,31 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.user import User
+from app.models.business import Business
 from app.schemas.risk_analysis import (
     RiskAnalysisRead,
     ForecastRequest,
     ForecastResponse,
     ForecastMonth,
+    MultiScenarioForecastResponse,
     ScenarioAdjustments,
     ScenarioResponse,
     ScenarioPreset,
 )
 from app.schemas.ai_chat import ChatRequest, ChatResponse
-from app.repositories.business_repository import BusinessRepository
 from app.repositories.financial_record_repository import FinancialRecordRepository
 from app.repositories.risk_analysis_repository import RiskAnalysisRepository
-from app.services.auth_service import get_current_user
 from app.services.financial_analysis import FinancialAnalysisEngine
 from app.services.advisor import AdvisorService
-from app.services.forecasting import calculate_forecast
+from app.services.forecasting import calculate_forecast, calculate_all_scenarios
 from app.services.scenario import simulate_scenario, get_predefined_scenarios, PREDEFINED_SCENARIOS
 from app.services.benchmarks import get_benchmark as get_industry_benchmark
 from app.services.ai_chat import AIChatService
 from app.config import settings
 from app.middleware.rate_limiter import limiter
+from app.dependencies import get_owned_business
 
 router = APIRouter()
-
-
-def _assert_business_owner(business_id: UUID, current_user: User, db: Session):
-    business = BusinessRepository(db).get_by_id(business_id)
-    if not business:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
-    if business.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    return business
 
 
 def _build_analysis_data(
@@ -50,10 +41,24 @@ def _build_analysis_data(
     advisor: AdvisorService,
     engine: FinancialAnalysisEngine,
     industry: str = "",
+    all_records: Optional[list] = None,
 ):
-    result = engine.analyze(record, previous, industry=industry)
+    result = engine.analyze(record, previous, industry=industry, all_records=all_records)
     recommendations = advisor.generate_recommendations(result)
     explanation = advisor.generate_risk_explanation(result)
+
+    # Embed v4.0 explainability fields in calculation_sources (no DB migration)
+    enriched_sources = dict(result.calculation_sources)
+    enriched_sources["risk_score_breakdown"] = result.risk_score_breakdown
+    enriched_sources["confidence_level"] = result.confidence_level
+    enriched_sources["confidence_explanation"] = result.confidence_explanation
+    enriched_sources["revenue_trend_label"] = result.revenue_trend_label
+    enriched_sources["runway_label"] = result.runway_label
+    enriched_sources["bankruptcy_explanation"] = result.bankruptcy_explanation
+    enriched_sources["drivers"] = result.drivers
+    enriched_sources["explanation"] = result.explanation
+    enriched_sources["expense_ratio"] = result.expense_ratio
+    enriched_sources["risk_level_display"] = result.risk_level
 
     return {
         "business_id": business_id,
@@ -72,7 +77,7 @@ def _build_analysis_data(
         "risk_level": result.risk_level,
         "recommendations": recommendations,
         "risk_explanation": explanation,
-        "calculation_sources": result.calculation_sources,
+        "calculation_sources": enriched_sources,
         "analysis_scope": scope,
         "period_month": getattr(record, "period_month", None) if scope == "monthly" else None,
         "period_year": getattr(record, "period_year", None) if scope == "monthly" else None,
@@ -115,19 +120,18 @@ def _build_combined_record(records):
 
 
 @router.post("/{business_id}/analyze", response_model=RiskAnalysisRead, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 def run_analysis(
-    business_id: UUID,
+    request: Request,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Run a financial risk analysis on the most recent financial record for the business.
     Returns the full analysis result including risk score, metrics, and recommendations.
     """
-    business = _assert_business_owner(business_id, current_user, db)
-
     record_repo = FinancialRecordRepository(db)
-    latest = record_repo.get_latest(business_id)
+    latest = record_repo.get_latest(business.id)
     if not latest:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -135,20 +139,21 @@ def run_analysis(
         )
 
     # Fetch the second-most-recent record for trend calculations
-    all_records = record_repo.get_by_business(business_id)
+    all_records = record_repo.get_by_business(business.id)
     previous = all_records[1] if len(all_records) > 1 else None
 
     engine = FinancialAnalysisEngine()
     advisor = AdvisorService()
 
     analysis_data = _build_analysis_data(
-        business_id=business_id,
+        business_id=business.id,
         record=latest,
         previous=previous,
         scope="monthly",
         advisor=advisor,
         engine=engine,
         industry=business.industry or "",
+        all_records=all_records,
     )
 
     return RiskAnalysisRepository(db).create(analysis_data)
@@ -156,15 +161,12 @@ def run_analysis(
 
 @router.post("/{business_id}/analyze/all-months", response_model=List[RiskAnalysisRead], status_code=status.HTTP_201_CREATED)
 def run_all_months_analysis(
-    business_id: UUID,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Run and persist one analysis per available financial month for the business."""
-    business = _assert_business_owner(business_id, current_user, db)
-
     record_repo = FinancialRecordRepository(db)
-    records = record_repo.get_by_business(business_id)
+    records = record_repo.get_by_business(business.id)
     if not records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -179,13 +181,14 @@ def run_all_months_analysis(
     for index, record in enumerate(records):
         previous = records[index + 1] if index + 1 < len(records) else None
         analysis_data = _build_analysis_data(
-            business_id=business_id,
+            business_id=business.id,
             record=record,
             previous=previous,
             scope="monthly",
             advisor=advisor,
             engine=engine,
             industry=business.industry or "",
+            all_records=records,
         )
         created.append(repo.create(analysis_data))
 
@@ -194,15 +197,12 @@ def run_all_months_analysis(
 
 @router.post("/{business_id}/analyze/combined", response_model=RiskAnalysisRead, status_code=status.HTTP_201_CREATED)
 def run_combined_analysis(
-    business_id: UUID,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Run and persist a single combined analysis across all available months."""
-    business = _assert_business_owner(business_id, current_user, db)
-
     record_repo = FinancialRecordRepository(db)
-    records = record_repo.get_by_business(business_id)
+    records = record_repo.get_by_business(business.id)
     if not records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -214,13 +214,14 @@ def run_combined_analysis(
     combined_record = _build_combined_record(records)
 
     analysis_data = _build_analysis_data(
-        business_id=business_id,
+        business_id=business.id,
         record=combined_record,
         previous=None,
         scope="combined",
         advisor=advisor,
         engine=engine,
         industry=business.industry or "",
+        all_records=records,
     )
 
     return RiskAnalysisRepository(db).create(analysis_data)
@@ -228,26 +229,22 @@ def run_combined_analysis(
 
 @router.get("/{business_id}/analysis", response_model=List[RiskAnalysisRead])
 def list_analyses(
-    business_id: UUID,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """List all risk analyses for a business, most recent first."""
-    _assert_business_owner(business_id, current_user, db)
-    return RiskAnalysisRepository(db).get_by_business(business_id)
+    return RiskAnalysisRepository(db).get_by_business(business.id)
 
 
 @router.get("/{business_id}/analysis/{analysis_id}", response_model=RiskAnalysisRead)
 def get_analysis(
-    business_id: UUID,
     analysis_id: UUID,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Get a specific risk analysis by ID."""
-    _assert_business_owner(business_id, current_user, db)
     analysis = RiskAnalysisRepository(db).get_by_id(analysis_id)
-    if not analysis or analysis.business_id != business_id:
+    if not analysis or analysis.business_id != business.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found.")
     return analysis
 
@@ -256,16 +253,13 @@ def get_analysis(
 
 @router.post("/{business_id}/forecast", response_model=ForecastResponse)
 def run_forecast(
-    business_id: UUID,
     body: ForecastRequest = ForecastRequest(),
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Project financial metrics forward based on current data and trends."""
-    business = _assert_business_owner(business_id, current_user, db)
-
     record_repo = FinancialRecordRepository(db)
-    latest = record_repo.get_latest(business_id)
+    latest = record_repo.get_latest(business.id)
     if not latest:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -274,11 +268,12 @@ def run_forecast(
 
     # Get trends from the latest analysis if available
     analysis_repo = RiskAnalysisRepository(db)
-    analyses = analysis_repo.get_by_business(business_id)
+    analyses = analysis_repo.get_by_business(business.id)
     latest_analysis = analyses[0] if analyses else None
 
     revenue_trend = latest_analysis.revenue_trend if latest_analysis else None
     expense_trend = latest_analysis.expense_trend if latest_analysis else None
+    risk_score = latest_analysis.risk_score if latest_analysis else 30.0
 
     projections = calculate_forecast(
         current_revenue=float(latest.monthly_revenue or 0),
@@ -291,6 +286,7 @@ def run_forecast(
         scenario=body.scenario,
         period_month=latest.period_month,
         period_year=latest.period_year,
+        risk_score=risk_score,
     )
 
     # Determine month where cash first hits zero
@@ -304,7 +300,7 @@ def run_forecast(
     end_cash = projections[-1]["projected_cash_balance"] if projections else 0.0
 
     return ForecastResponse(
-        business_id=business_id,
+        business_id=business.id,
         months=body.months,
         scenario=body.scenario,
         projections=[ForecastMonth(**p) for p in projections],
@@ -314,31 +310,70 @@ def run_forecast(
     )
 
 
+@router.post("/{business_id}/forecast/all-scenarios", response_model=MultiScenarioForecastResponse)
+def run_all_scenarios_forecast(
+    body: ForecastRequest = ForecastRequest(),
+    business: Business = Depends(get_owned_business),
+    db: Session = Depends(get_db),
+):
+    """Return forecasts for all three scenarios (baseline, optimistic, pessimistic)."""
+    record_repo = FinancialRecordRepository(db)
+    latest = record_repo.get_latest(business.id)
+    if not latest:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No financial records found. Add data before running a forecast.",
+        )
+
+    analysis_repo = RiskAnalysisRepository(db)
+    analyses = analysis_repo.get_by_business(business.id)
+    latest_analysis = analyses[0] if analyses else None
+
+    revenue_trend = latest_analysis.revenue_trend if latest_analysis else None
+    expense_trend = latest_analysis.expense_trend if latest_analysis else None
+    risk_score = latest_analysis.risk_score if latest_analysis else 30.0
+
+    all_scenarios = calculate_all_scenarios(
+        current_revenue=float(latest.monthly_revenue or 0),
+        current_expenses=float(latest.monthly_expenses or 0),
+        cash_reserves=float(latest.cash_reserves or 0),
+        debt=float(latest.debt or 0),
+        revenue_trend=revenue_trend,
+        expense_trend=expense_trend,
+        months=body.months,
+        period_month=latest.period_month,
+        period_year=latest.period_year,
+        risk_score=risk_score,
+    )
+
+    return MultiScenarioForecastResponse(
+        business_id=business.id,
+        months=body.months,
+        baseline=[ForecastMonth(**p) for p in all_scenarios["baseline"]],
+        optimistic=[ForecastMonth(**p) for p in all_scenarios["optimistic"]],
+        pessimistic=[ForecastMonth(**p) for p in all_scenarios["pessimistic"]],
+    )
+
+
 # ─── Scenario endpoint ───────────────────────────────────────────────────────
 
 @router.get("/{business_id}/scenario/presets", response_model=List[ScenarioPreset])
 def list_scenario_presets(
-    business_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    business: Business = Depends(get_owned_business),
 ):
     """Return the list of predefined scenario presets."""
-    _assert_business_owner(business_id, current_user, db)
     return get_predefined_scenarios()
 
 
 @router.post("/{business_id}/scenario", response_model=ScenarioResponse)
 def run_scenario(
-    business_id: UUID,
     adjustments: ScenarioAdjustments,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Simulate a what-if scenario by applying adjustments to the latest financials."""
-    business = _assert_business_owner(business_id, current_user, db)
-
     record_repo = FinancialRecordRepository(db)
-    latest = record_repo.get_latest(business_id)
+    latest = record_repo.get_latest(business.id)
     if not latest:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -371,7 +406,7 @@ def run_scenario(
     )
 
     return ScenarioResponse(
-        business_id=business_id,
+        business_id=business.id,
         original=result["original"],
         adjusted=result["adjusted"],
         comparison=result["comparison"],
@@ -385,10 +420,9 @@ def run_scenario(
 @limiter.limit("20/minute")
 def ai_chat(
     request: Request,
-    business_id: UUID,
     payload: ChatRequest,
+    business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Send a message to the AI Financial Advisor, grounded in this business's data."""
     if not settings.GEMINI_API_KEY:
@@ -397,10 +431,8 @@ def ai_chat(
             detail="AI advisor is not configured. Set GEMINI_API_KEY in environment.",
         )
 
-    business = _assert_business_owner(business_id, current_user, db)
-
     record_repo = FinancialRecordRepository(db)
-    latest_record = record_repo.get_latest(business_id)
+    latest_record = record_repo.get_latest(business.id)
     if not latest_record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -408,7 +440,7 @@ def ai_chat(
         )
 
     analysis_repo = RiskAnalysisRepository(db)
-    analyses = analysis_repo.get_by_business(business_id)
+    analyses = analysis_repo.get_by_business(business.id)
     latest_analysis = analyses[0] if analyses else None
     if not latest_analysis:
         raise HTTPException(

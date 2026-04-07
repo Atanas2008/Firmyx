@@ -1,0 +1,63 @@
+# Production override — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Differences from base/dev:
+#   • Production frontend build (standalone output)
+#   • Gunicorn with multiple workers
+#   • Resource limits and restart policies
+#   • No source code volumes mounted
+
+services:
+  db:
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  backend:
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://firmyx:${POSTGRES_PASSWORD}@db:5432/firmyx
+      - REDIS_URL=redis://redis:6379/0
+    command: >
+      sh -c "alembic upgrade head &&
+             gunicorn app.main:app
+             -w 4
+             -k uvicorn.workers.UvicornWorker
+             --bind 0.0.0.0:8000
+             --timeout 120
+             --access-logfile -
+             --error-logfile -"
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_reports:/app/reports
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  frontend:
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:8000}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+volumes:
+  backend_uploads:
+  backend_reports:

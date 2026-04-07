@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import {
-  AlertTriangle, TrendingUp, DollarSign, Shield, Zap, Activity,
+  AlertTriangle, TrendingUp, DollarSign, Shield, Zap, Activity, ArrowRight, Clock,
 } from 'lucide-react';
 import { generateRecommendations } from '@/lib/aiInsights';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -11,6 +12,7 @@ import type { Recommendation, Priority } from '@/lib/aiInsights';
 
 interface SmartRecommendationsProps {
   analysis: RiskAnalysis;
+  scenarioHref?: string;
 }
 
 // ─── Icons by category ────────────────────────────────────────────────────────
@@ -40,7 +42,7 @@ const ICON_BG: Record<Priority, string> = {
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function SmartRecommendations({ analysis }: SmartRecommendationsProps) {
+export function SmartRecommendations({ analysis, scenarioHref }: SmartRecommendationsProps) {
   const { t } = useLanguage();
   const recommendations = generateRecommendations(analysis);
   const recTexts = recommendations.map((r) => r.text);
@@ -52,7 +54,7 @@ export function SmartRecommendations({ analysis }: SmartRecommendationsProps) {
         <TrendingUp className="mx-auto mb-2 h-6 w-6 text-emerald-500" />
         <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{t.recommendations.noCriticalSmart}</p>
         <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
-          {t.recommendations.healthyMetrics}
+          {t.recommendations.financiallyHealthy}
         </p>
       </div>
     );
@@ -63,7 +65,7 @@ export function SmartRecommendations({ analysis }: SmartRecommendationsProps) {
       {recommendations.map((rec, i) => (
         <li
           key={i}
-          className="flex items-start gap-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm dark:shadow-none"
+          className="flex flex-col sm:flex-row items-start gap-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm dark:shadow-none"
         >
           {/* Icon circle */}
           <span
@@ -75,22 +77,19 @@ export function SmartRecommendations({ analysis }: SmartRecommendationsProps) {
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-50">{rec.title}</span>
               <span
                 className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${PRIORITY_STYLES[rec.priority]}`}
               >
                 {rec.priority} {t.recommendations.priority}
               </span>
-              <span className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">
-                {rec.category}
+              <span className="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                <Clock className="h-3 w-3" />
+                {rec.timeframe}
               </span>
             </div>
             <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{translatedTexts[i] ?? rec.text}</p>
-            {/* CHANGED: Display new metric-trigger fields */}
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-              <span>
-                <span className="font-medium text-gray-600 dark:text-gray-300">{t.recommendations.trigger}:</span>{' '}
-                {rec.metric_trigger.replace(/_/g, ' ')}
-              </span>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
               <span>
                 <span className="font-medium text-gray-600 dark:text-gray-300">{t.recommendations.current}:</span>{' '}
                 {rec.current_value}
@@ -103,6 +102,15 @@ export function SmartRecommendations({ analysis }: SmartRecommendationsProps) {
                 <span className="font-medium text-gray-600 dark:text-gray-300">{t.recommendations.impact}:</span>{' '}
                 {rec.estimated_impact}
               </span>
+              {scenarioHref && (
+                <Link
+                  href={scenarioHref}
+                  className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors py-1 sm:py-0"
+                >
+                  {t.conversion.simulateThis}
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              )}
             </div>
           </div>
         </li>

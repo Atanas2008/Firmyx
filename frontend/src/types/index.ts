@@ -36,6 +36,24 @@ export interface FinancialRecord {
   created_at: string;
 }
 
+export interface RecommendationJustification {
+  driver: string;
+  comparison: string;
+  impact: string;
+  priority_reason: string;
+}
+
+export interface RecommendationItem {
+  title: string;
+  explanation: string;
+  justification: RecommendationJustification;
+  priority?: string | null;
+  current_value?: string | null;
+  target_value?: string | null;
+  timeframe?: string | null;
+  concrete_actions?: string[] | null;
+}
+
 export interface RiskAnalysis {
   id: string;
   business_id: string;
@@ -51,14 +69,26 @@ export interface RiskAnalysis {
   financial_health_score: number | null;
   bankruptcy_probability: number | null;
   risk_score: number;
-  risk_level: 'safe' | 'moderate_risk' | 'high_risk';
-  recommendations: string[];
+  risk_level: 'safe' | 'moderate_risk' | 'high_risk' | 'low' | 'medium' | 'high' | 'critical';
+  recommendations: RecommendationItem[] | string[];
   risk_explanation: string;
-  calculation_sources?: Record<string, string>;
+  calculation_sources?: Record<string, unknown>;
   analysis_scope: 'monthly' | 'combined';
   period_month?: number | null;
   period_year?: number | null;
   industry_model_applied?: string | null;
+  // v4.0 explainability layer
+  risk_score_breakdown?: Record<string, number> | null;
+  confidence_level?: string | null;
+  confidence_explanation?: string | null;
+  revenue_trend_label?: string | null;
+  runway_label?: string | null;
+  bankruptcy_explanation?: string | null;
+  // v5.0 deterministic scoring
+  drivers?: string[] | null;
+  explanation?: string | null;
+  expense_ratio?: number | null;
+  risk_level_display?: string | null;
   created_at: string;
 }
 
@@ -141,6 +171,14 @@ export interface ForecastResult {
   end_cash_balance: number;
 }
 
+export interface MultiScenarioForecast {
+  business_id: string;
+  months: number;
+  baseline: ForecastMonth[];
+  optimistic: ForecastMonth[];
+  pessimistic: ForecastMonth[];
+}
+
 // ─── Scenario types ──────────────────────────────────────────────────────────
 
 export interface ScenarioAdjustments {
@@ -173,4 +211,5 @@ export interface ScenarioResult {
   adjusted: Record<string, number | string | null>;
   comparison: Record<string, MetricComparison>;
   summary: string;
+  disclaimer?: string;
 }

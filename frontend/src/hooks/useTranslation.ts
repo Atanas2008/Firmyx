@@ -41,7 +41,11 @@ export function useTranslation(texts: string[]) {
     try {
       const res = await translateApi.translate(texts, language);
       const result = res.data.translations;
-      translationCache.set(cacheKey, result);
+      // Only cache if at least one text was actually translated (not a fallback)
+      const wasTranslated = result.some((r: string, i: number) => r !== texts[i]);
+      if (wasTranslated) {
+        translationCache.set(cacheKey, result);
+      }
       setTranslated(result);
     } catch {
       // Fallback to original text on error

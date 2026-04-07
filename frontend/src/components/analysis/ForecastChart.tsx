@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import {
-  LineChart,
+  ComposedChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,17 +17,13 @@ import { analysisApi } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useTheme } from '@/hooks/useTheme';
 import { useLanguage } from '@/hooks/useLanguage';
-import type { ForecastResult, ForecastScenario } from '@/types';
+import type { MultiScenarioForecast, ForecastMonth } from '@/types';
 
 interface ForecastChartProps {
   businessId: string;
 }
 
-const SCENARIOS: { key: ForecastScenario; label: string; color: string }[] = [
-  { key: 'baseline', label: 'Baseline', color: 'blue' },
-  { key: 'optimistic', label: 'Optimistic', color: 'emerald' },
-  { key: 'pessimistic', label: 'Pessimistic', color: 'red' },
-];
+type ViewMode = 'revenue' | 'cash' | 'risk';
 
 function formatCurrency(value: number): string {
   if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
@@ -34,16 +31,28 @@ function formatCurrency(value: number): string {
   return `$${value.toFixed(0)}`;
 }
 
+function buildOverlayData(data: MultiScenarioForecast, mode: ViewMode) {
+  const getVal = (p: ForecastMonth) =>
+    mode === 'revenue' ? p.projected_revenue
+    : mode === 'cash' ? p.projected_cash_balance
+    : p.projected_risk_score;
+
+  return data.baseline.map((b, i) => ({
+    name: b.label || `M${b.month}`,
+    baseline: getVal(b),
+    optimistic: getVal(data.optimistic[i]),
+    pessimistic: getVal(data.pessimistic[i]),
+    // Band between optimistic and pessimistic
+    band: [getVal(data.pessimistic[i]), getVal(data.optimistic[i])],
+  }));
+}
+
 export function ForecastChart({ businessId }: ForecastChartProps) {
   const { resolvedTheme } = useTheme();
   const { t } = useLanguage();
   const dark = resolvedTheme === 'dark';
-  const [forecasts, setForecasts] = useState<Record<ForecastScenario, ForecastResult | null>>({
-    baseline: null,
-    optimistic: null,
-    pessimistic: null,
-  });
-  const [activeScenario, setActiveScenario] = useState<ForecastScenario>('baseline');
+  const [data, setData] = useState<MultiScenarioForecast | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('revenue');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [generated, setGenerated] = useState(false);
@@ -52,16 +61,8 @@ export function ForecastChart({ businessId }: ForecastChartProps) {
     setLoading(true);
     setError('');
     try {
-      const [baseline, optimistic, pessimistic] = await Promise.all([
-        analysisApi.forecast(businessId, 12, 'baseline'),
-        analysisApi.forecast(businessId, 12, 'optimistic'),
-        analysisApi.forecast(businessId, 12, 'pessimistic'),
-      ]);
-      setForecasts({
-        baseline: baseline.data,
-        optimistic: optimistic.data,
-        pessimistic: pessimistic.data,
-      });
+      const res = await analysisApi.forecastAllScenarios(businessId, 12);
+      setData(res.data);
       setGenerated(true);
     } catch {
       setError(t.forecast.failedToGenerate);
@@ -91,42 +92,45 @@ export function ForecastChart({ businessId }: ForecastChartProps) {
   }
 
   if (loading) return <LoadingSpinner />;
+  if (!data) return null;
 
-  const forecast = forecasts[activeScenario];
-  if (!forecast) return null;
+  const baseline = data.baseline;
+  const lastBaseline = baseline[baseline.length - 1];
+  const lastOptimistic = data.optimistic[data.optimistic.length - 1];
+  const lastPessimistic = data.pessimistic[data.pessimistic.length - 1];
+  const avgBurnRate = baseline.reduce((sum, p) => sum + p.burn_rate, 0) / baseline.length;
+  const chartData = buildOverlayData(data, viewMode);
 
-  const chartData = forecast.projections.map((p) => ({
-    name: p.label || `M${p.month}`,
-    [t.common.revenue]: p.projected_revenue,
-    [t.common.expenses]: p.projected_expenses,
-    ['Cash Balance']: p.projected_cash_balance,
-  }));
+  const cashRunwayMonth = baseline.findIndex(p => p.projected_cash_balance <= 0);
 
-  const lastMonth = forecast.projections[forecast.projections.length - 1];
-  const avgBurnRate = forecast.projections.reduce((sum, p) => sum + p.burn_rate, 0) / forecast.projections.length;
+  const viewLabels: Record<ViewMode, string> = {
+    revenue: t.common.revenue ?? 'Revenue',
+    cash: t.forecast.endCashBalance ?? 'Cash Balance',
+    risk: t.decision.riskScore ?? 'Risk Score',
+  };
+
+  const formatValue = viewMode === 'risk'
+    ? (v: number) => `${v.toFixed(0)}/100`
+    : formatCurrency;
 
   return (
     <div className="space-y-4">
-      {/* Scenario tabs */}
+      {/* View mode tabs */}
       <div className="flex gap-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-1">
-        {SCENARIOS.map((s) => {
-          const isActive = activeScenario === s.key;
-          const scenarioLabel = s.key === 'baseline' ? t.forecast.baseline : s.key === 'optimistic' ? t.forecast.optimistic : t.forecast.pessimistic;
-          return (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setActiveScenario(s.key)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                isActive
-                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              {scenarioLabel}
-            </button>
-          );
-        })}
+        {(['revenue', 'cash', 'risk'] as ViewMode[]).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setViewMode(mode)}
+            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              viewMode === mode
+                ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            {viewLabels[mode]}
+          </button>
+        ))}
       </div>
 
       {/* Summary cards */}
@@ -137,12 +141,12 @@ export function ForecastChart({ businessId }: ForecastChartProps) {
             {t.forecast.cashRunway}
           </div>
           <p className="mt-1 text-lg font-bold text-gray-800 dark:text-gray-100">
-            {forecast.projected_cash_runway
-              ? `${t.forecast.month} ${forecast.projected_cash_runway}`
+            {cashRunwayMonth >= 0
+              ? `${t.forecast.month} ${cashRunwayMonth + 1}`
               : t.forecast.monthsPlus}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {forecast.projected_cash_runway
+            {cashRunwayMonth >= 0
               ? t.forecast.cashReachesZero
               : t.forecast.cashRemainsPositive}
           </p>
@@ -154,12 +158,15 @@ export function ForecastChart({ businessId }: ForecastChartProps) {
             {t.forecast.endRiskScore}
           </div>
           <p className={`mt-1 text-lg font-bold ${
-            forecast.end_of_period_risk_score <= 30 ? 'text-emerald-700 dark:text-emerald-400' :
-            forecast.end_of_period_risk_score <= 60 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
+            lastBaseline.projected_risk_score <= 30 ? 'text-emerald-700 dark:text-emerald-400' :
+            lastBaseline.projected_risk_score <= 50 ? 'text-amber-600 dark:text-amber-400' :
+            lastBaseline.projected_risk_score <= 70 ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'
           }`}>
-            {forecast.end_of_period_risk_score.toFixed(0)}/100
+            {lastBaseline.projected_risk_score.toFixed(0)}/100
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t.forecast.projectedAtMonth} {forecast.months}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {lastOptimistic.projected_risk_score.toFixed(0)} — {lastPessimistic.projected_risk_score.toFixed(0)} {t.forecast.range ?? 'range'}
+          </p>
         </div>
 
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3">
@@ -168,13 +175,15 @@ export function ForecastChart({ businessId }: ForecastChartProps) {
             {t.forecast.endCashBalance}
           </div>
           <p className={`mt-1 text-lg font-bold ${
-            forecast.end_cash_balance >= 0
+            lastBaseline.projected_cash_balance >= 0
               ? 'text-emerald-700 dark:text-emerald-400'
               : 'text-red-600 dark:text-red-400'
           }`}>
-            {formatCurrency(forecast.end_cash_balance)}
+            {formatCurrency(lastBaseline.projected_cash_balance)}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{t.forecast.endOfPeriodBalance}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {formatCurrency(lastPessimistic.projected_cash_balance)} — {formatCurrency(lastOptimistic.projected_cash_balance)}
+          </p>
         </div>
 
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3">
@@ -190,46 +199,68 @@ export function ForecastChart({ businessId }: ForecastChartProps) {
             {avgBurnRate > 0 ? formatCurrency(avgBurnRate) + t.forecast.perMonth : t.forecast.profitable}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {lastMonth?.runway_months != null ? `${lastMonth.runway_months} ${t.forecast.monthsRunway}` : t.forecast.infiniteRunway}
+            {lastBaseline.runway_months != null ? `${lastBaseline.runway_months} ${t.forecast.monthsRunway}` : t.forecast.infiniteRunway}
           </p>
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="h-72">
+      {/* Multi-scenario overlay chart */}
+      <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+          <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={dark ? '#374151' : '#f0f0f0'} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: dark ? '#9ca3af' : undefined }} />
-            <YAxis tick={{ fontSize: 12, fill: dark ? '#9ca3af' : undefined }} tickFormatter={formatCurrency} />
+            <YAxis tick={{ fontSize: 12, fill: dark ? '#9ca3af' : undefined }} tickFormatter={viewMode === 'risk' ? (v: number) => `${v}` : formatCurrency} />
             <Tooltip
-              formatter={(value: number) => formatCurrency(value)}
+              formatter={(value: number) => formatValue(value)}
               contentStyle={{ borderRadius: '8px', border: dark ? '1px solid #374151' : '1px solid #e5e7eb', backgroundColor: dark ? '#1f2937' : '#fff', color: dark ? '#f9fafb' : undefined }}
             />
             <Legend />
-            <Line
+            {/* Uncertainty band between pessimistic and optimistic */}
+            <Area
               type="monotone"
-              dataKey={t.common.revenue}
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={false}
+              dataKey="optimistic"
+              stroke="none"
+              fill="#3b82f6"
+              fillOpacity={0.08}
+              name={t.forecast.optimistic ?? 'Optimistic'}
             />
-            <Line
+            <Area
               type="monotone"
-              dataKey={t.common.expenses}
-              stroke="#ef4444"
-              strokeWidth={2}
-              dot={false}
+              dataKey="pessimistic"
+              stroke="none"
+              fill="#ef4444"
+              fillOpacity={0.08}
+              name={t.forecast.pessimistic ?? 'Pessimistic'}
             />
+            {/* Scenario lines */}
             <Line
               type="monotone"
-              dataKey="Cash Balance"
+              dataKey="optimistic"
               stroke="#10b981"
-              strokeWidth={2}
+              strokeWidth={1.5}
               strokeDasharray="5 5"
               dot={false}
+              name={t.forecast.optimistic ?? 'Optimistic'}
             />
-          </LineChart>
+            <Line
+              type="monotone"
+              dataKey="pessimistic"
+              stroke="#ef4444"
+              strokeWidth={1.5}
+              strokeDasharray="5 5"
+              dot={false}
+              name={t.forecast.pessimistic ?? 'Pessimistic'}
+            />
+            <Line
+              type="monotone"
+              dataKey="baseline"
+              stroke="#3b82f6"
+              strokeWidth={2.5}
+              dot={false}
+              name={t.forecast.baseline ?? 'Baseline'}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
 
