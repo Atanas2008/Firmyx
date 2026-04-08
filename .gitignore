@@ -33,3 +33,9 @@ frontend/.env
 
 # Temp files
 tmpbody.json
+
+# Test outputs
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/

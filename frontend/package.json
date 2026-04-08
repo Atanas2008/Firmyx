@@ -6,28 +6,42 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "axios": "^1.6.7",
+    "clsx": "^2.1.0",
+    "js-cookie": "^3.0.5",
+    "lucide-react": "^0.312.0",
     "next": "15.2.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "axios": "^1.6.7",
-    "recharts": "^2.10.3",
-    "lucide-react": "^0.312.0",
-    "clsx": "^2.1.0",
-    "js-cookie": "^3.0.5"
+    "recharts": "^2.10.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
+    "@types/js-cookie": "^3.0.6",
     "@types/node": "^20.11.6",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
-    "@types/js-cookie": "^3.0.6",
-    "typescript": "^5.3.3",
-    "tailwindcss": "^3.4.1",
     "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.33",
     "eslint": "^8.56.0",
-    "eslint-config-next": "15.2.9"
+    "eslint-config-next": "15.2.9",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "ts-jest": "^29.4.9",
+    "typescript": "^5.3.3"
   }
 }
