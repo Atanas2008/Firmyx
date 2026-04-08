@@ -33,7 +33,7 @@ def generate_report(
     for the specified business.
     """
     analysis_repo = RiskAnalysisRepository(db)
-    analyses = analysis_repo.get_by_business(business.id)
+    analyses = analysis_repo.get_by_business(business.id, skip=0, limit=1)
     if not analyses:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -78,13 +78,25 @@ def generate_report(
     return analysis_repo.create_report(report_data)
 
 
-@router.get("/{business_id}/reports", response_model=List[ReportRead])
+@router.get("/{business_id}/reports")
 def list_reports(
+    skip: int = 0,
+    limit: int = 50,
     business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
 ):
-    """List all generated reports for a business."""
-    return RiskAnalysisRepository(db).get_reports_by_business(business.id)
+    """List all generated reports for a business (paginated)."""
+    limit = min(limit, 100)
+    repo = RiskAnalysisRepository(db)
+    items = repo.get_reports_by_business(business.id, skip=skip, limit=limit)
+    total = repo.count_reports_by_business(business.id)
+    return {
+        "items": items,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "has_more": skip + limit < total,
+    }
 
 
 @router.get("/{business_id}/reports/{report_id}/download")

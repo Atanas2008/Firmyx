@@ -88,3 +88,11 @@ class FinancialRecordUpdate(BaseModel):
     current_liabilities: Optional[Decimal] = None
     ebit: Optional[Decimal] = None
     retained_earnings: Optional[Decimal] = None
+
+
+class PaginatedFinancialRecords(BaseModel):
+    items: list[FinancialRecordRead]
+    total: int
+    skip: int
+    limit: int
+    has_more: bool

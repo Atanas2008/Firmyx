@@ -16,13 +16,25 @@ from app.middleware.rate_limiter import limiter
 router = APIRouter()
 
 
-@router.get("/{business_id}/records", response_model=List[FinancialRecordRead])
+@router.get("/{business_id}/records")
 def list_records(
+    skip: int = 0,
+    limit: int = 50,
     business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
 ):
-    """List all financial records for a business, ordered by most recent period first."""
-    return FinancialRecordRepository(db).get_by_business(business.id)
+    """List financial records for a business (paginated), ordered by most recent period first."""
+    limit = min(limit, 100)
+    repo = FinancialRecordRepository(db)
+    items = repo.get_by_business(business.id, skip=skip, limit=limit)
+    total = repo.count_by_business(business.id)
+    return {
+        "items": items,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "has_more": skip + limit < total,
+    }
 
 
 @router.post("/{business_id}/records", response_model=FinancialRecordRead, status_code=status.HTTP_201_CREATED)

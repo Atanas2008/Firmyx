@@ -123,6 +123,14 @@ class RiskAnalysisRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PaginatedRiskAnalyses(BaseModel):
+    items: List[RiskAnalysisRead]
+    total: int
+    skip: int
+    limit: int
+    has_more: bool
+
+
 # ─── Forecast schemas ─────────────────────────────────────────────────────────
 
 class ForecastMonth(BaseModel):

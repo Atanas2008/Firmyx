@@ -139,7 +139,7 @@ def run_analysis(
         )
 
     # Fetch the second-most-recent record for trend calculations
-    all_records = record_repo.get_by_business(business.id)
+    all_records = record_repo.get_all_by_business(business.id)
     previous = all_records[1] if len(all_records) > 1 else None
 
     engine = FinancialAnalysisEngine()
@@ -166,7 +166,7 @@ def run_all_months_analysis(
 ):
     """Run and persist one analysis per available financial month for the business."""
     record_repo = FinancialRecordRepository(db)
-    records = record_repo.get_by_business(business.id)
+    records = record_repo.get_all_by_business(business.id)
     if not records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -202,7 +202,7 @@ def run_combined_analysis(
 ):
     """Run and persist a single combined analysis across all available months."""
     record_repo = FinancialRecordRepository(db)
-    records = record_repo.get_by_business(business.id)
+    records = record_repo.get_all_by_business(business.id)
     if not records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -227,13 +227,25 @@ def run_combined_analysis(
     return RiskAnalysisRepository(db).create(analysis_data)
 
 
-@router.get("/{business_id}/analysis", response_model=List[RiskAnalysisRead])
+@router.get("/{business_id}/analysis")
 def list_analyses(
+    skip: int = 0,
+    limit: int = 50,
     business: Business = Depends(get_owned_business),
     db: Session = Depends(get_db),
 ):
-    """List all risk analyses for a business, most recent first."""
-    return RiskAnalysisRepository(db).get_by_business(business.id)
+    """List all risk analyses for a business (paginated), most recent first."""
+    limit = min(limit, 100)
+    repo = RiskAnalysisRepository(db)
+    items = repo.get_by_business(business.id, skip=skip, limit=limit)
+    total = repo.count_by_business(business.id)
+    return {
+        "items": items,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "has_more": skip + limit < total,
+    }
 
 
 @router.get("/{business_id}/analysis/{analysis_id}", response_model=RiskAnalysisRead)

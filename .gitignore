@@ -6,10 +6,14 @@ Thumbs.db
 
 # Python backend
 backend/.env
+*.env
+!*.env.example
 backend/.venv/
 backend/venv/
 backend/**/__pycache__/
+**/__pycache__/
 backend/**/*.pyc
+*.pyc
 backend/.pytest_cache/
 backend/reports/
 backend/uploads/
@@ -21,5 +25,11 @@ frontend/out/
 frontend/.env*.local
 frontend/.env
 
+# Build info
+*.tsbuildinfo
+
 # Logs
 *.log
+
+# Temp files
+tmpbody.json

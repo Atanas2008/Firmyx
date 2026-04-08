@@ -1,4 +1,4 @@
-__pycache__
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -6,7 +6,9 @@ __pycache__
 .git
 .gitignore
 .env*
+!.env.example
 uploads/
 reports/
 *.log
-.pytest_cache
+.pytest_cache/
+tests/

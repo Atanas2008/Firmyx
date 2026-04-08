@@ -12,13 +12,27 @@ class FinancialRecordRepository:
     def get_by_id(self, record_id: UUID) -> Optional[FinancialRecord]:
         return self.db.query(FinancialRecord).filter(FinancialRecord.id == record_id).first()
 
-    def get_by_business(self, business_id: UUID) -> List[FinancialRecord]:
+    def get_by_business(self, business_id: UUID, skip: int = 0, limit: int = 50) -> List[FinancialRecord]:
+        return (
+            self.db.query(FinancialRecord)
+            .filter(FinancialRecord.business_id == business_id)
+            .order_by(FinancialRecord.period_year.desc(), FinancialRecord.period_month.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def get_all_by_business(self, business_id: UUID) -> List[FinancialRecord]:
+        """Return all records without pagination — for internal analysis use."""
         return (
             self.db.query(FinancialRecord)
             .filter(FinancialRecord.business_id == business_id)
             .order_by(FinancialRecord.period_year.desc(), FinancialRecord.period_month.desc())
             .all()
         )
+
+    def count_by_business(self, business_id: UUID) -> int:
+        return self.db.query(FinancialRecord).filter(FinancialRecord.business_id == business_id).count()
 
     def get_latest(self, business_id: UUID) -> Optional[FinancialRecord]:
         return (

@@ -1,6 +1,6 @@
 import uuid
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Float, Text, DateTime, ForeignKey, Enum as SAEnum, JSON, String, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -44,7 +44,7 @@ class RiskAnalysis(Base):
     period_month = Column(Integer, nullable=True)
     period_year = Column(Integer, nullable=True)
     industry_model_applied = Column(String(64), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     business = relationship("Business", back_populates="risk_analyses")
     financial_record = relationship("FinancialRecord", back_populates="risk_analyses")

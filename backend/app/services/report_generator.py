@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from reportlab.lib import colors
@@ -113,7 +113,7 @@ class ReportGenerator:
         elements.append(
             Paragraph(
                 f"{business.name} &nbsp;&nbsp;|&nbsp;&nbsp; "
-                f"Generated: {datetime.utcnow().strftime('%B %d, %Y')}",
+                f"Generated: {datetime.now(timezone.utc).strftime('%B %d, %Y')}",
                 sub_style,
             )
         )
