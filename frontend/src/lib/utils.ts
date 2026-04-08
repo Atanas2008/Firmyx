@@ -89,8 +89,11 @@ export function riskLabel(
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SAFE_THRESHOLD = 30;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const MODERATE_THRESHOLD = 50;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const HIGH_THRESHOLD = 70;
 
 export function scoreColor(score: number): string {

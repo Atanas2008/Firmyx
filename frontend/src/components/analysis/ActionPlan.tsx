@@ -8,7 +8,7 @@ import {
 import { generateRecommendations } from '@/lib/aiInsights';
 import {
   generateActionSteps, getExecutionState, toggleStep, computeProgress,
-  type ActionPlanData, type ExecutionState,
+  type ExecutionState,
 } from '@/lib/actionSteps';
 import { useLanguage } from '@/hooks/useLanguage';
 import type { RiskAnalysis } from '@/types';

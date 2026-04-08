@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import { computeScoreChange } from '@/lib/aiInsights';
 import { useLanguage } from '@/hooks/useLanguage';
 import type { RiskAnalysis } from '@/types';

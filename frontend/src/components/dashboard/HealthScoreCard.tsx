@@ -12,6 +12,7 @@ interface HealthScoreCardProps {
 
 export function HealthScoreCard({
   score,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   riskLevel,
   label,
 }: HealthScoreCardProps) {

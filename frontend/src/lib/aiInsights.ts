@@ -750,6 +750,7 @@ export function identifyBiggestRisk(analysis: RiskAnalysis): BiggestRisk {
     return { label: 'financial risk exposure', explanation: 'Overall risk profile could be optimised further', potentialScoreReduction: 5, category: 'General' };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { weight: _, ...risk } = risks[0];
   return risk;
 }

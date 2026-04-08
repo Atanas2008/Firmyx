@@ -10,7 +10,7 @@ interface UrgencyAlertsProps {
 }
 
 export function UrgencyAlerts({ analyses }: UrgencyAlertsProps) {
-  const { t } = useLanguage();
+  useLanguage();
   const alerts = detectUrgencyAlerts(analyses);
 
   if (alerts.length === 0) return null;

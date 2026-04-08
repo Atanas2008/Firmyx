@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { SlidersHorizontal, ArrowDown, ArrowUp, Minus, Zap, Info, ArrowRight, Save } from 'lucide-react';
-import Link from 'next/link';
+import { SlidersHorizontal, ArrowDown, ArrowUp, Minus, Zap, Info, ArrowRight } from 'lucide-react';
 import { analysisApi } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useLanguage } from '@/hooks/useLanguage';
