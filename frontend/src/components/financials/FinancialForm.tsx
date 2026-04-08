@@ -1,14 +1,16 @@
 'use client';
 
 import { useMemo, useState, type FormEvent } from 'react';
+import { Copy } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useLanguage } from '@/hooks/useLanguage';
-import type { CreateRecordData } from '@/types';
+import type { CreateRecordData, FinancialRecord } from '@/types';
 
 interface FinancialFormProps {
   onSubmit: (data: CreateRecordData) => Promise<void>;
   loading?: boolean;
+  lastRecord?: FinancialRecord | null;
 }
 
 type NumericFieldKey = Exclude<keyof CreateRecordData, 'period_month' | 'period_year'>;
@@ -28,7 +30,7 @@ const MONTHS = [
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
-export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps) {
+export function FinancialForm({ onSubmit, loading = false, lastRecord }: FinancialFormProps) {
   const { t } = useLanguage();
   const now = new Date();
   const [form, setForm] = useState<CreateRecordData>({
@@ -47,6 +49,7 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
     ebit: null,
     retained_earnings: null,
   });
+  const [touched, setTouched] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof CreateRecordData, string>>>({});
   const [displayValues, setDisplayValues] = useState<
     Partial<Record<keyof CreateRecordData, string>>
@@ -77,13 +80,16 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
     if (OPTIONAL_ADVANCED_FIELDS.includes(key) && form[key] == null) {
       return '';
     }
-    return formatMoney(getNumericValue(key));
+    const val = getNumericValue(key);
+    if (!touched && val === 0) return '';
+    return formatMoney(val);
   }
 
   function validateField(
     key: keyof CreateRecordData,
     value: number | null,
-    draft: CreateRecordData
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _draft: CreateRecordData
   ): string | undefined {
     if (value !== null && Number.isNaN(value)) return 'Please enter a valid number.';
 
@@ -135,6 +141,7 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
   }
 
   function setMoneyField(key: NumericFieldKey, value: string) {
+    if (!touched) setTouched(true);
     const isOptionalAdvanced = OPTIONAL_ADVANCED_FIELDS.includes(key);
     const parsed = value.trim() === '' && isOptionalAdvanced ? null : parseMoneyInput(value);
     setDisplayValues((prev) => ({ ...prev, [key]: value }));
@@ -156,6 +163,7 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
   }
 
   function handleMoneyFocus(key: NumericFieldKey) {
+    if (!touched) setTouched(true);
     if (OPTIONAL_ADVANCED_FIELDS.includes(key) && form[key] == null) {
       setDisplayValues((prev) => ({ ...prev, [key]: '' }));
       return;
@@ -261,12 +269,43 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
         </div>
       </div>
 
+      {/* Copy from last month */}
+      {lastRecord && (
+        <button
+          type="button"
+          onClick={() => {
+            setForm((prev) => ({
+              ...prev,
+              monthly_revenue: lastRecord.monthly_revenue,
+              monthly_expenses: lastRecord.monthly_expenses,
+              payroll: lastRecord.payroll,
+              rent: lastRecord.rent,
+              debt: lastRecord.debt,
+              cash_reserves: lastRecord.cash_reserves,
+              taxes: lastRecord.taxes,
+              cost_of_goods_sold: lastRecord.cost_of_goods_sold,
+              total_assets: lastRecord.total_assets ?? null,
+              current_liabilities: lastRecord.current_liabilities ?? null,
+              ebit: lastRecord.ebit ?? null,
+              retained_earnings: lastRecord.retained_earnings ?? null,
+            }));
+            setDisplayValues({});
+            setTouched(true);
+          }}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        >
+          <Copy className="h-3.5 w-3.5" />
+          {t.financialsExtra.copyFromLastMonth}
+        </button>
+      )}
+
       {/* Income & Expenses */}
       <div>
         <p className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">{t.financials.incomeExpenses}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
             label={t.financials.monthlyRevenue}
+            required
             type="text"
             inputMode="decimal"
             min="0"
@@ -280,6 +319,7 @@ export function FinancialForm({ onSubmit, loading = false }: FinancialFormProps)
           />
           <Input
             label={t.financials.monthlyExpenses}
+            required
             type="text"
             inputMode="decimal"
             min="0"

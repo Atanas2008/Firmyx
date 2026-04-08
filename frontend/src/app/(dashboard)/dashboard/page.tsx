@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Building2, TrendingUp, AlertTriangle, Rocket, DollarSign, BarChart3, Shield, ArrowUpRight } from 'lucide-react';
+import { Plus, Building2, AlertTriangle, Rocket, DollarSign, BarChart3, Shield, ArrowUpRight } from 'lucide-react';
 import { businessApi, analysisApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
-import { Card } from '@/components/ui/Card';
 import { RiskIndicator } from '@/components/dashboard/RiskIndicator';
-import { formatCurrency, formatDate, scoreColor } from '@/lib/utils';
+import { scoreColor } from '@/lib/utils';
 import type { Business, RiskAnalysis } from '@/types';
 
 function StatCard({ icon: Icon, label, value, color, subtitle }: {
@@ -56,7 +55,7 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [latestAnalyses, setLatestAnalyses] = useState<Record<string, RiskAnalysis>>({});
   const [loading, setLoading] = useState(true);
@@ -197,10 +196,10 @@ export default function DashboardPage() {
             />
             <StatCard
               icon={BarChart3}
-              label="Avg. Risk Score"
+              label={t.dashboardExtra.avgRiskScore}
               value={avgScore !== null ? `${avgScore}/100` : '—'}
               color="bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400"
-              subtitle={avgScore !== null ? (avgScore <= 30 ? 'Healthy portfolio' : avgScore <= 50 ? 'Needs attention' : 'High risk portfolio') : 'Run analyses to see'}
+              subtitle={avgScore !== null ? (avgScore <= 30 ? t.dashboardExtra.healthyPortfolio : avgScore <= 50 ? t.dashboardExtra.needsAttention : t.dashboardExtra.highRiskPortfolio) : t.dashboardExtra.runAnalysesToSee}
             />
           </div>
 

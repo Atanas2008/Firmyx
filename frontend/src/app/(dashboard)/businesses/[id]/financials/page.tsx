@@ -1,22 +1,18 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
-  BarChart3,
-  DollarSign,
-  FileText,
-  Building2,
   Plus,
   Calendar,
   Trash2,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { businessApi, financialApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { BusinessTabs } from '@/components/layout/BusinessTabs';
 import { Card } from '@/components/ui/Card';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { FinancialForm } from '@/components/financials/FinancialForm';
 import { FileUpload } from '@/components/financials/FileUpload';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -27,7 +23,7 @@ type Tab = 'manual' | 'upload';
 
 export default function FinancialsPage() {
   const { id } = useParams<{ id: string }>();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [business, setBusiness] = useState<Business | null>(null);
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [tab, setTab] = useState<Tab>('manual');
@@ -35,6 +31,7 @@ export default function FinancialsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -93,8 +90,8 @@ export default function FinancialsPage() {
   }, [loadData]);
 
   async function handleDelete(recordId: string) {
-    if (!window.confirm(t.financials.deleteConfirm)) return;
     setDeletingId(recordId);
+    setConfirmDeleteId(null);
     setErrorMsg('');
     setSuccessMsg('');
     try {
@@ -156,28 +153,7 @@ export default function FinancialsPage() {
       />
 
       {/* Navigation tabs */}
-      <div className="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700">
-        {[
-          { label: t.nav.overview, href: `/businesses/${id}`, icon: Building2 },
-          { label: t.nav.financials, href: `/businesses/${id}/financials`, icon: DollarSign },
-          { label: t.nav.analysis, href: `/businesses/${id}/analysis`, icon: BarChart3 },
-          { label: t.nav.scenario, href: `/businesses/${id}/scenario`, icon: SlidersHorizontal },
-          { label: t.nav.reports, href: `/businesses/${id}/reports`, icon: FileText },
-        ].map(({ label, href, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-              href === `/businesses/${id}/financials`
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-blue-300 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Link>
-        ))}
-      </div>
+      <BusinessTabs businessId={id} activeTab="financials" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Input form */}
@@ -220,7 +196,7 @@ export default function FinancialsPage() {
               </div>
             )}
             {tab === 'manual' ? (
-              <FinancialForm onSubmit={handleManualSubmit} loading={saving} />
+              <FinancialForm onSubmit={handleManualSubmit} loading={saving} lastRecord={records[0] ?? null} />
             ) : (
               <div>
                 <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
@@ -284,24 +260,24 @@ export default function FinancialsPage() {
                       <Calendar className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-50">
-                          {monthName(r.period_month)} {r.period_year}
+                          {monthName(r.period_month, language)} {r.period_year}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500">
-                          Rev: {formatCurrency(r.monthly_revenue)}
+                          Rev: {formatCurrency(r.monthly_revenue, 'USD', language)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                          {formatCurrency(r.monthly_revenue - r.monthly_expenses)}
+                          {formatCurrency(r.monthly_revenue - r.monthly_expenses, 'USD', language)}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500">{t.common.profit}</p>
                       </div>
                       <button
                         type="button"
                         disabled={deletingId === r.id}
-                        onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(r.id); }}
                         className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-40 transition-colors"
                         title={t.financials.deleteRecord}
                       >
@@ -321,19 +297,29 @@ export default function FinancialsPage() {
           {selectedRecord && (
             <Card title={t.financials.selectedRecordDetails} className="mt-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <p className="text-sm text-gray-700 dark:text-gray-300">{t.common.period}: <span className="font-medium text-gray-900 dark:text-gray-50">{monthName(selectedRecord.period_month)} {selectedRecord.period_year}</span></p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{t.common.revenue}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.monthly_revenue)}</span></p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{t.common.expenses}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.monthly_expenses)}</span></p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{t.common.profit}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.monthly_revenue - selectedRecord.monthly_expenses)}</span></p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{t.financials.debt}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.debt)}</span></p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{t.financials.cashReserves}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.cash_reserves)}</span></p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{t.financials.cogs}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.cost_of_goods_sold)}</span></p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">{t.financials.taxes}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.taxes)}</span></p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t.common.period}: <span className="font-medium text-gray-900 dark:text-gray-50">{monthName(selectedRecord.period_month, language)} {selectedRecord.period_year}</span></p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t.common.revenue}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.monthly_revenue, 'USD', language)}</span></p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t.common.expenses}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.monthly_expenses, 'USD', language)}</span></p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t.common.profit}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.monthly_revenue - selectedRecord.monthly_expenses, 'USD', language)}</span></p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t.financials.debt}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.debt, 'USD', language)}</span></p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t.financials.cashReserves}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.cash_reserves, 'USD', language)}</span></p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t.financials.cogs}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.cost_of_goods_sold, 'USD', language)}</span></p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t.financials.taxes}: <span className="font-medium text-gray-900 dark:text-gray-50">{formatCurrency(selectedRecord.taxes, 'USD', language)}</span></p>
               </div>
             </Card>
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title={t.financialsExtra.deleteRecordTitle}
+        description={t.financialsExtra.deleteRecordDescription}
+        variant="danger"
+        onConfirm={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+        loading={deletingId !== null}
+      />
     </div>
   );
 }

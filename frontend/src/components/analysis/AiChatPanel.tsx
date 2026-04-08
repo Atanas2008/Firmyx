@@ -16,29 +16,22 @@ interface AiChatPanelProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getSuggestedQuestions(analysis: RiskAnalysis): string[] {
+function getSuggestedQuestions(
+  analysis: RiskAnalysis,
+  cs: { whyScore: string; zScore: string; urgent: string; improve: string; compare: string }
+): string[] {
   const questions: string[] = [];
 
-  questions.push(`Why is my risk score ${Math.round(analysis.risk_score)}?`);
-  questions.push('Explain my Altman Z-Score in simple terms');
+  questions.push(cs.whyScore.replace('{score}', String(Math.round(analysis.risk_score))));
+  questions.push(cs.zScore);
 
   if (analysis.risk_score > 70) {
-    questions.push('What are the most urgent things I should fix?');
+    questions.push(cs.urgent);
   } else {
-    questions.push('What can I do to keep improving my financial health?');
+    questions.push(cs.improve);
   }
 
-  questions.push('How do my numbers compare to industry averages?');
-
-  if (analysis.cash_runway_months !== null && analysis.cash_runway_months < 12) {
-    questions.push(
-      `My cash runway is ${analysis.cash_runway_months.toFixed(1)} months — is that dangerous?`
-    );
-  }
-
-  if (analysis.profit_margin < 0) {
-    questions.push("I'm operating at a loss — what should I do first?");
-  }
+  questions.push(cs.compare);
 
   return questions.slice(0, 4);
 }
@@ -182,7 +175,7 @@ export function AiChatPanel({ businessId, analysis, onAskRef }: AiChatPanelProps
   // ------------------------------------------------------------------
   // Expanded panel
   // ------------------------------------------------------------------
-  const suggested = getSuggestedQuestions(analysis);
+  const suggested = getSuggestedQuestions(analysis, t.chatSuggestions);
 
   return (
     <div className="fixed bottom-4 right-4 left-4 sm:left-[calc(240px+1.5rem)] z-30 flex flex-col rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl" style={{ height: 'min(420px, 70vh)' }}>

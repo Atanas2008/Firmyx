@@ -32,7 +32,7 @@ function trendArrow(value: number): string {
 }
 
 export function MetricsTable({ analysis }: MetricsTableProps) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const m = buildValidatedMetrics(analysis);
 
   const rows: MetricRow[] = [
@@ -44,7 +44,7 @@ export function MetricsTable({ analysis }: MetricsTableProps) {
     },
     {
       label: t.metrics.burnRate,
-      value: formatCurrency(analysis.burn_rate),
+      value: formatCurrency(analysis.burn_rate, 'USD', language),
       status: analysis.burn_rate === 0 ? 'good' : analysis.burn_rate < 50000 ? 'warn' : 'bad',
       description: t.metrics.burnRateDesc,
     },

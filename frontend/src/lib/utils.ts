@@ -4,8 +4,8 @@ export function cn(...inputs: ClassValue[]): string {
   return clsx(inputs);
 }
 
-export function formatCurrency(value: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(value: number, currency = 'USD', locale = 'en-US'): string {
+  return new Intl.NumberFormat(locale === 'bg' ? 'bg-BG' : 'en-US', {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
@@ -17,12 +17,12 @@ export function formatPercent(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`;
 }
 
-export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US').format(value);
+export function formatNumber(value: number, locale = 'en-US'): string {
+  return new Intl.NumberFormat(locale === 'bg' ? 'bg-BG' : 'en-US').format(value);
 }
 
-export function monthName(month: number): string {
-  return new Date(2000, month - 1, 1).toLocaleString('en-US', {
+export function monthName(month: number, locale = 'en-US'): string {
+  return new Date(2000, month - 1, 1).toLocaleString(locale === 'bg' ? 'bg-BG' : 'en-US', {
     month: 'short',
   });
 }
@@ -68,20 +68,22 @@ export function riskBg(
 }
 
 export function riskLabel(
-  level: 'safe' | 'moderate_risk' | 'high_risk' | 'low' | 'medium' | 'high' | 'critical' | string
+  level: 'safe' | 'moderate_risk' | 'high_risk' | 'low' | 'medium' | 'high' | 'critical' | string,
+  labels?: { low: string; medium: string; high: string; critical: string }
 ): string {
+  const l = labels ?? { low: 'Low Risk', medium: 'Medium Risk', high: 'High Risk', critical: 'Critical Risk' };
   switch (level) {
     case 'safe':
     case 'low':
-      return 'Low Risk';
+      return l.low;
     case 'moderate_risk':
     case 'medium':
-      return 'Medium Risk';
+      return l.medium;
     case 'high_risk':
     case 'high':
-      return 'High Risk';
+      return l.high;
     case 'critical':
-      return 'Critical Risk';
+      return l.critical;
     default:
       return 'Unknown';
   }
@@ -102,11 +104,15 @@ export function scoreColor(score: number): string {
  * Derives a human-readable 4-tier risk label directly from the numeric risk score.
  * Matches the v5.0 scoring model: low ≤ 30, medium ≤ 50, high ≤ 70, critical > 70.
  */
-export function scoreTierLabel(score: number): string {
-  if (score <= 30) return 'Low Risk';
-  if (score <= 50) return 'Medium Risk';
-  if (score <= 70) return 'High Risk';
-  return 'Critical Risk';
+export function scoreTierLabel(
+  score: number,
+  labels?: { low: string; medium: string; high: string; critical: string }
+): string {
+  const l = labels ?? { low: 'Low Risk', medium: 'Medium Risk', high: 'High Risk', critical: 'Critical Risk' };
+  if (score <= 30) return l.low;
+  if (score <= 50) return l.medium;
+  if (score <= 70) return l.high;
+  return l.critical;
 }
 
 export function formatDate(dateString: string, locale: string = 'en-US'): string {

@@ -743,4 +743,75 @@ export const bg: Dictionary = {
       followUpTitle: 'Какво да направите след това',
     },
   },
+
+  // ── Analysis Section Headers ────────────────────────────
+  sectionHeaders: {
+    yourScore: 'Вашият резултат',
+    whatToDo: 'Какво да направите',
+    details: 'Детайлен анализ',
+  },
+
+  // ── Risk Levels (for riskLabel / scoreTierLabel) ────────
+  riskLevels: {
+    low: 'Нисък риск',
+    medium: 'Среден риск',
+    high: 'Висок риск',
+    critical: 'Критичен риск',
+  },
+
+  // ── Dashboard (additional) ─────────────────────────────
+  dashboardExtra: {
+    avgRiskScore: 'Среден риск',
+    healthyPortfolio: 'Здраво портфолио',
+    needsAttention: 'Нуждае се от внимание',
+    highRiskPortfolio: 'Портфолио с висок риск',
+    runAnalysesToSee: 'Стартирайте анализ',
+  },
+
+  // ── Auth Branding (left panel) ─────────────────────────
+  authBranding: {
+    loginHeadline: 'Финансово откриване на риск\nза модерни бизнеси.',
+    loginSubtext: 'Наблюдавайте здравни показатели, прогнозирайте риск от фалит с Altman Z-Score и получавайте AI препоръки.',
+    registerHeadline: 'Започнете да защитавате\nбизнеса си днес.',
+    registerSubtext: 'Присъединете се към хилядите бизнеси, използващи Firmyx за наблюдение на финансовото здраве и предотвратяване на риска.',
+    feature1: 'Финансова оценка в реално време',
+    feature2: 'AI-базирани прогнози за риск',
+    feature3: 'Сигурност от корпоративен клас',
+  },
+
+  // ── Financial Form (additional) ────────────────────────
+  financialsExtra: {
+    copyFromLastMonth: 'Копирай от миналия месец',
+    deleteRecordTitle: 'Изтриване на запис',
+    deleteRecordDescription: 'Това ще изтрие този финансов запис завинаги. Действието е необратимо.',
+  },
+
+  // ── Settings (additional) ──────────────────────────────
+  settingsExtra: {
+    currency: 'Валута',
+    currencySubtitle: 'Изберете как да се показват паричните стойности',
+    changePassword: 'Промяна на парола',
+    currentPassword: 'Текуща парола',
+    newPassword: 'Нова парола',
+    confirmNewPassword: 'Потвърдете новата парола',
+    updatePassword: 'Обнови парола',
+    passwordUpdated: 'Паролата е обновена успешно.',
+    passwordUpdateFailed: 'Неуспешно обновяване на паролата.',
+    currentPasswordIncorrect: 'Текущата парола е грешна.',
+  },
+
+  // ── Onboarding (additional) ────────────────────────────
+  onboardingExtra: {
+    setupProgress: 'Напредък на настройката',
+    businessCreated: 'Бизнесът е създаден! Сега добавете финансови данни.',
+  },
+
+  // ── AI Chat Suggested Questions ────────────────────────
+  chatSuggestions: {
+    whyScore: 'Защо рисковият ми резултат е {score}?',
+    zScore: 'Обясни ми Altman Z-Score на прост език',
+    urgent: 'Кои са най-спешните неща за оправяне?',
+    improve: 'Какво мога да направя за подобряване?',
+    compare: 'Как стоят числата ми спрямо индустрията?',
+  },
 } as const;

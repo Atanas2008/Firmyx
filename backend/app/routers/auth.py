@@ -9,6 +9,7 @@ from app.schemas.user import UserCreate, UserRead, Token
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import (
     verify_password,
+    hash_password,
     create_access_token,
     create_refresh_token,
     decode_token,
@@ -22,6 +23,11 @@ router = APIRouter()
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -86,3 +92,24 @@ def refresh_token(request: Request, db: Session = Depends(get_db)):
 def me(current_user: User = Depends(get_current_user)):
     """Return the authenticated user's profile."""
     return current_user
+
+
+@router.put("/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change the authenticated user's password."""
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+    if len(data.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="New password must be at least 8 characters.",
+        )
+    current_user.hashed_password = hash_password(data.new_password)
+    db.commit()

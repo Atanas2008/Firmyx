@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { monthName, formatCurrency } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { useLanguage } from '@/hooks/useLanguage';
 import type { FinancialRecord } from '@/types';
 
 interface RevenueExpenseChartProps {
@@ -20,6 +21,7 @@ interface RevenueExpenseChartProps {
 
 export function RevenueExpenseChart({ records }: RevenueExpenseChartProps) {
   const { resolvedTheme } = useTheme();
+  const { language } = useLanguage();
   const dark = resolvedTheme === 'dark';
 
   if (!records || records.length === 0) {
@@ -37,7 +39,7 @@ export function RevenueExpenseChart({ records }: RevenueExpenseChartProps) {
         : a.period_month - b.period_month
     )
     .map((r) => ({
-      name: `${monthName(r.period_month)} ${r.period_year}`,
+      name: `${monthName(r.period_month, language)} ${r.period_year}`,
       Revenue: r.monthly_revenue,
       Expenses: r.monthly_expenses,
     }));
@@ -59,7 +61,7 @@ export function RevenueExpenseChart({ records }: RevenueExpenseChartProps) {
           tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
         />
         <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
+          formatter={(value: number) => formatCurrency(value, 'USD', language)}
           contentStyle={{
             borderRadius: '8px',
             border: dark ? '1px solid #374151' : '1px solid #e5e7eb',

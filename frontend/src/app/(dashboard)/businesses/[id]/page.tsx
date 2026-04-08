@@ -9,22 +9,17 @@ import {
   Users,
   Calendar,
   DollarSign,
+  TrendingUp,
   BarChart3,
   FileText,
-  SlidersHorizontal,
-  TrendingUp,
-  Trash2,
-  ArrowRight,
 } from 'lucide-react';
+import { BusinessTabs } from '@/components/layout/BusinessTabs';
 import { scoreColor } from '@/lib/utils';
 import { businessApi, analysisApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useTranslation } from '@/hooks/useTranslation';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { RiskIndicator } from '@/components/dashboard/RiskIndicator';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SmartRecommendations } from '@/components/analysis/SmartRecommendations';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Business, RiskAnalysis } from '@/types';
@@ -104,24 +99,32 @@ export default function BusinessDetailPage() {
       </div>
 
       {/* Navigation tabs */}
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-800">
-        {[
-          { label: t.nav.overview, href: `/businesses/${id}`, icon: Building2 },
-          { label: t.nav.financials, href: `/businesses/${id}/financials`, icon: DollarSign },
-          { label: t.nav.analysis, href: `/businesses/${id}/analysis`, icon: BarChart3 },
-          { label: t.nav.scenario, href: `/businesses/${id}/scenario`, icon: SlidersHorizontal },
-          { label: t.nav.reports, href: `/businesses/${id}/reports`, icon: FileText },
-        ].map(({ label, href, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex items-center gap-1.5 border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all"
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Link>
-        ))}
-      </div>
+      <BusinessTabs businessId={id} activeTab="overview" />
+
+      {/* Onboarding progress */}
+      {!latestAnalysis && (
+        <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-4">
+          <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">{t.onboardingExtra.setupProgress}</p>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <span className="text-sm text-gray-700 dark:text-gray-200">{t.dashboard.step1Title}</span>
+            </div>
+            <div className="h-px flex-1 bg-blue-200 dark:bg-blue-800" />
+            <Link href={`/businesses/${id}/financials`} className="flex items-center gap-2 group">
+              <div className="h-6 w-6 rounded-full border-2 border-blue-400 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">2</div>
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400 group-hover:underline">{t.dashboard.step2Title}</span>
+            </Link>
+            <div className="h-px flex-1 bg-blue-200 dark:bg-blue-800" />
+            <div className="flex items-center gap-2 opacity-50">
+              <div className="h-6 w-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs font-bold text-gray-400">3</div>
+              <span className="text-sm text-gray-400">{t.dashboard.step3Title}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Business Details */}
@@ -161,7 +164,7 @@ export default function BusinessDetailPage() {
                 <div>
                   <dt className="text-gray-500 dark:text-gray-400">{t.businesses.monthlyFixedCosts}</dt>
                   <dd className="font-medium text-gray-900 dark:text-gray-50">
-                    {formatCurrency(business.monthly_fixed_costs)}
+                    {formatCurrency(business.monthly_fixed_costs, 'USD', language)}
                   </dd>
                 </div>
               </div>

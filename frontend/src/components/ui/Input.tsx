@@ -5,9 +5,10 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
+  required?: boolean;
 }
 
-export function Input({ label, error, hint, className, id, ...props }: InputProps) {
+export function Input({ label, error, hint, required, className, id, ...props }: InputProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
@@ -18,6 +19,7 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
           className="block text-sm font-medium text-gray-700 dark:text-gray-200"
         >
           {label}
+          {required && <span className="ml-0.5 text-red-500">*</span>}
         </label>
       )}
       <input

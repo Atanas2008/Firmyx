@@ -2,7 +2,7 @@
 
 import { buildValidatedMetrics } from '@/lib/aiInsights';
 import { useLanguage } from '@/hooks/useLanguage';
-import { formatPercent, formatCurrency } from '@/lib/utils';
+import { formatPercent } from '@/lib/utils';
 import type { RiskAnalysis } from '@/types';
 
 interface KeyMetricsGroupedProps {

@@ -60,6 +60,12 @@ export const authApi = {
     apiClient.post<User>('/auth/register', data),
 
   me: () => apiClient.get<User>('/auth/me'),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiClient.put('/auth/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
 };
 
 // ─── Businesses ──────────────────────────────────────────────────────────────

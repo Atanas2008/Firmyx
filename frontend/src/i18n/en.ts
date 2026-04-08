@@ -751,6 +751,77 @@ export const en = {
       followUpTitle: 'What to Do Next',
     },
   },
+
+  // ── Analysis Section Headers ────────────────────────────
+  sectionHeaders: {
+    yourScore: 'Your Score',
+    whatToDo: 'What to Do',
+    details: 'Detailed Analysis',
+  },
+
+  // ── Risk Levels (for riskLabel / scoreTierLabel) ────────
+  riskLevels: {
+    low: 'Low Risk',
+    medium: 'Medium Risk',
+    high: 'High Risk',
+    critical: 'Critical Risk',
+  },
+
+  // ── Dashboard (additional) ─────────────────────────────
+  dashboardExtra: {
+    avgRiskScore: 'Avg. Risk Score',
+    healthyPortfolio: 'Healthy portfolio',
+    needsAttention: 'Needs attention',
+    highRiskPortfolio: 'High risk portfolio',
+    runAnalysesToSee: 'Run analyses to see',
+  },
+
+  // ── Auth Branding (left panel) ─────────────────────────
+  authBranding: {
+    loginHeadline: 'Financial risk detection\nfor modern businesses.',
+    loginSubtext: 'Monitor health metrics, predict bankruptcy risk with Altman Z-Score, and get AI-powered recommendations.',
+    registerHeadline: 'Start protecting your\nbusiness today.',
+    registerSubtext: 'Join thousands of businesses using Firmyx to monitor financial health and prevent risk before it happens.',
+    feature1: 'Real-time financial health scoring',
+    feature2: 'AI-driven risk predictions & forecasts',
+    feature3: 'Enterprise-grade security & encryption',
+  },
+
+  // ── Financial Form (additional) ────────────────────────
+  financialsExtra: {
+    copyFromLastMonth: 'Copy from last month',
+    deleteRecordTitle: 'Delete record',
+    deleteRecordDescription: 'This will permanently delete this financial record. This action cannot be undone.',
+  },
+
+  // ── Settings (additional) ──────────────────────────────
+  settingsExtra: {
+    currency: 'Currency',
+    currencySubtitle: 'Choose how monetary values are displayed',
+    changePassword: 'Change Password',
+    currentPassword: 'Current password',
+    newPassword: 'New password',
+    confirmNewPassword: 'Confirm new password',
+    updatePassword: 'Update password',
+    passwordUpdated: 'Password updated successfully.',
+    passwordUpdateFailed: 'Failed to update password.',
+    currentPasswordIncorrect: 'Current password is incorrect.',
+  },
+
+  // ── Onboarding (additional) ────────────────────────────
+  onboardingExtra: {
+    setupProgress: 'Setup progress',
+    businessCreated: 'Business created! Now add your financial data.',
+  },
+
+  // ── AI Chat Suggested Questions ────────────────────────
+  chatSuggestions: {
+    whyScore: 'Why is my risk score {score}?',
+    zScore: 'Explain my Altman Z-Score in simple terms',
+    urgent: 'What are the most urgent things I should fix?',
+    improve: 'What can I do to keep improving?',
+    compare: 'How do my numbers compare to industry averages?',
+  },
 } as const;
 
 type DeepString<T> = {

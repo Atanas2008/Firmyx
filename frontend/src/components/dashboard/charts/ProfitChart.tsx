@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { monthName, formatCurrency } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { useLanguage } from '@/hooks/useLanguage';
 import type { FinancialRecord } from '@/types';
 
 interface ProfitChartProps {
@@ -20,6 +21,7 @@ interface ProfitChartProps {
 
 export function ProfitChart({ records }: ProfitChartProps) {
   const { resolvedTheme } = useTheme();
+  const { language } = useLanguage();
   const dark = resolvedTheme === 'dark';
 
   if (!records || records.length === 0) {
@@ -37,7 +39,7 @@ export function ProfitChart({ records }: ProfitChartProps) {
         : a.period_month - b.period_month
     )
     .map((r) => ({
-      name: `${monthName(r.period_month)} ${r.period_year}`,
+      name: `${monthName(r.period_month, language)} ${r.period_year}`,
       Profit: r.monthly_revenue - r.monthly_expenses,
     }));
 
@@ -58,7 +60,7 @@ export function ProfitChart({ records }: ProfitChartProps) {
           tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
         />
         <Tooltip
-          formatter={(value: number) => [formatCurrency(value), 'Profit']}
+          formatter={(value: number) => [formatCurrency(value, 'USD', language), 'Profit']}
           contentStyle={{
             borderRadius: '8px',
             border: dark ? '1px solid #374151' : '1px solid #e5e7eb',

@@ -25,7 +25,7 @@ interface MetricItem {
 }
 
 export function MetricsGrid({ analysis }: MetricsGridProps) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const isRunwayNotApplicable =
     analysis.cash_runway_months === null ||
     analysis.cash_runway_months >= 999;
@@ -54,7 +54,7 @@ export function MetricsGrid({ analysis }: MetricsGridProps) {
     },
     {
       label: t.metrics.burnRate,
-      value: formatCurrency(analysis.burn_rate),
+      value: formatCurrency(analysis.burn_rate, 'USD', language),
       icon: <Flame className="h-5 w-5" />,
       description: t.metrics.burnRateDesc,
       color:

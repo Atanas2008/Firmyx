@@ -1,20 +1,16 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   FileText,
   Download,
   Plus,
-  Building2,
-  DollarSign,
-  BarChart3,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { analysisApi, businessApi, reportApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { BusinessTabs } from '@/components/layout/BusinessTabs';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -137,7 +133,7 @@ export default function ReportsPage() {
                   const label =
                     analysis.analysis_scope === 'combined'
                       ? `Combined • ${formatDate(analysis.created_at, language)}`
-                      : `${monthName(analysis.period_month ?? 1)} ${analysis.period_year ?? ''} • ${formatDate(analysis.created_at, language)}`;
+                      : `${monthName(analysis.period_month ?? 1, language)} ${analysis.period_year ?? ''} • ${formatDate(analysis.created_at, language)}`;
                   return (
                     <option key={analysis.id} value={analysis.id}>
                       {label}
@@ -155,28 +151,7 @@ export default function ReportsPage() {
       />
 
       {/* Navigation tabs */}
-      <div className="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700">
-        {[
-          { label: t.nav.overview, href: `/businesses/${id}`, icon: Building2 },
-          { label: t.nav.financials, href: `/businesses/${id}/financials`, icon: DollarSign },
-          { label: t.nav.analysis, href: `/businesses/${id}/analysis`, icon: BarChart3 },
-          { label: t.nav.scenario, href: `/businesses/${id}/scenario`, icon: SlidersHorizontal },
-          { label: t.nav.reports, href: `/businesses/${id}/reports`, icon: FileText },
-        ].map(({ label, href, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-              href === `/businesses/${id}/reports`
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-blue-300 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Link>
-        ))}
-      </div>
+      <BusinessTabs businessId={id} activeTab="reports" />
 
       {successMsg && (
         <div className="mb-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">

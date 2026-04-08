@@ -56,17 +56,17 @@ export default function LoginPage() {
         <div className="relative z-10 space-y-8">
           <div>
             <h2 className="text-3xl font-bold leading-tight tracking-tight">
-              Financial risk detection<br />for modern businesses.
+              {t.authBranding.loginHeadline}
             </h2>
             <p className="mt-4 text-blue-100/90 leading-relaxed max-w-sm">
-              Monitor health metrics, predict bankruptcy risk with Altman Z-Score, and get AI-powered recommendations.
+              {t.authBranding.loginSubtext}
             </p>
           </div>
           <div className="space-y-4">
             {[
-              { icon: BarChart3, text: 'Real-time financial health scoring' },
-              { icon: TrendingUp, text: 'AI-driven risk predictions & forecasts' },
-              { icon: Lock, text: 'Enterprise-grade security & encryption' },
+              { icon: BarChart3, text: t.authBranding.feature1 },
+              { icon: TrendingUp, text: t.authBranding.feature2 },
+              { icon: Lock, text: t.authBranding.feature3 },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">

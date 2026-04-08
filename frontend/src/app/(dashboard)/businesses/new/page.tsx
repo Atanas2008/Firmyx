@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { businessApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useToast } from '@/components/ui/Toast';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -28,6 +29,7 @@ const INDUSTRIES = [
 export default function NewBusinessPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { success: showSuccess } = useToast();
   const [form, setForm] = useState<CreateBusinessData>({
     name: '',
     industry: '',
@@ -135,7 +137,8 @@ export default function NewBusinessPage() {
     setLoading(true);
     try {
       const { data } = await businessApi.create(form);
-      router.push(`/businesses/${data.id}`);
+      showSuccess(t.onboardingExtra.businessCreated);
+      router.push(`/businesses/${data.id}/financials`);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data
