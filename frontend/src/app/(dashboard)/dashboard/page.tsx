@@ -64,12 +64,14 @@ export default function DashboardPage() {
     async function load() {
       try {
         const { data } = await businessApi.list();
-        setBusinesses(data);
+        const items = data.items ?? data;
+        setBusinesses(items);
         const analyses: Record<string, RiskAnalysis> = {};
         await Promise.all(
-          data.map(async (b) => {
+          items.map(async (b) => {
             try {
-              const { data: list } = await analysisApi.list(b.id);
+              const { data: listData } = await analysisApi.list(b.id);
+              const list = listData.items ?? listData;
               if (list.length > 0) {
                 const sorted = [...list].sort(
                   (a, b2) => new Date(b2.created_at).getTime() - new Date(a.created_at).getTime()

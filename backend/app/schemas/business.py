@@ -8,6 +8,7 @@ from pydantic import BaseModel, field_validator
 SUPPORTED_INDUSTRIES = [
     "Technology", "Software", "Food & Beverage", "Restaurants", "Coffee Chains",
     "Retail", "Manufacturing", "Healthcare", "Real Estate", "Logistics & Transport",
+    "Construction", "Professional Services", "Transportation", "Finance", "Education",
     "Other",
 ]
 

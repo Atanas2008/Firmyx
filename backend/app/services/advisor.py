@@ -1,5 +1,5 @@
 from typing import List, Optional
-from app.services.financial_analysis import AnalysisResult, get_industry_weights
+from app.services.financial_analysis import AnalysisResult, FinancialAnalysisEngine, get_industry_weights
 from app.models.risk_analysis import RiskLevel
 
 # ---------------------------------------------------------------------------
@@ -24,48 +24,31 @@ def _system_state(result: AnalysisResult) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Normalization bounds — MUST stay in sync with
-# FinancialAnalysisEngine._financial_health_score() in financial_analysis.py.
+# v5.0 step-function scoring helpers
 # ---------------------------------------------------------------------------
-_Z_BOUNDS = (-5.0, 6.0)
-_LIQ_BOUNDS = (0.0, 3.0)
-_PM_BOUNDS = (-20.0, 30.0)
-_DEBT_BOUNDS = (0.0, 1.0)
-_REV_BOUNDS = (-0.3, 0.3)
+_engine = FinancialAnalysisEngine()
 
 
-def _clamp_norm(value: float, low: float, high: float) -> float:
-    """Normalize *value* to [0, 1] within [low, high], clamping at boundaries."""
-    if high == low:
-        return 0.5
-    return max(0.0, min(1.0, (value - low) / (high - low)))
+def _v5_component_score(metric: str, value: float, revenue_history: list[float] | None = None) -> float:
+    """Return the v5.0 step-function score (0-100) for a given metric."""
+    if metric == "leverage":
+        return _engine._score_leverage(value)
+    elif metric == "liquidity":
+        return _engine._score_liquidity(value)
+    elif metric == "profitability":
+        return _engine._score_profitability(value)
+    elif metric == "stability":
+        return _engine._score_stability(revenue_history or [])
+    elif metric == "growth":
+        return _engine._score_growth(value)
+    return 50.0
 
 
-def _risk_pts(health_norm: float, weight: float) -> float:
-    """Risk points contributed by one health-score component."""
-    return (1.0 - health_norm) * weight * 100.0
-
-
-def _contribution(
-    value: float, low: float, high: float, weight: float,
-    inverted: bool = False, penalty: float = 0.0,
-) -> float:
-    """Total risk points from one metric (composite + penalty)."""
-    n = _clamp_norm(value, low, high)
-    h = (1.0 - n) if inverted else n
-    return _risk_pts(h, weight) + penalty
-
-
-def _improvement(
-    current: float, target: float,
-    low: float, high: float, weight: float,
-    inverted: bool = False,
-    cur_penalty: float = 0.0, tgt_penalty: float = 0.0,
-) -> float:
-    """Estimated risk-score improvement (positive = better) from *current* → *target*."""
-    c = _contribution(current, low, high, weight, inverted, cur_penalty)
-    t = _contribution(target, low, high, weight, inverted, tgt_penalty)
-    return max(0.0, round(c - t, 1))
+def _v5_improvement(metric: str, current: float, target: float, weight: float, revenue_history: list[float] | None = None) -> float:
+    """Estimated risk-score improvement using v5.0 step functions."""
+    current_score = _v5_component_score(metric, current, revenue_history)
+    target_score = _v5_component_score(metric, target, revenue_history)
+    return max(0.0, round(weight * (current_score - target_score), 1))
 
 
 def _rec(
@@ -133,29 +116,16 @@ class AdvisorService:
         ) else 0.0
 
         # ── Per-metric total risk contributions (for driver strings) ──
-        z_total = round(_contribution(
-            result.altman_z_score, *_Z_BOUNDS, weights["zScore"], penalty=z_penalty,
-        ), 1)
-        pm_total = round(_contribution(
-            result.profit_margin, *_PM_BOUNDS, weights["profitMargin"], penalty=pm_penalty,
-        ), 1)
-        debt_total = round(_contribution(
-            result.debt_ratio, *_DEBT_BOUNDS, weights["debtRatio"], inverted=True,
-        ), 1)
-        liq_total = round(_contribution(
-            result.liquidity_ratio, *_LIQ_BOUNDS, weights["liquidity"],
-        ), 1)
-        rev_total = round(_contribution(
-            result.revenue_trend, *_REV_BOUNDS, weights["revenueTrend"],
-        ), 1)
+        leverage_contribution = round(weights["debtRatio"] * _v5_component_score("leverage", result.debt_ratio), 1)
+        profitability_contribution = round(weights["profitMargin"] * _v5_component_score("profitability", result.profit_margin), 1)
+        debt_total = leverage_contribution
+        pm_total = profitability_contribution
+        liq_total = round(weights["liquidity"] * _v5_component_score("liquidity", result.liquidity_ratio), 1)
+        rev_total = round(weights["revenueTrend"] * _v5_component_score("growth", result.revenue_trend), 1)
 
         # ── Profit margin ──────────────────────────────────────────
         if is_zero_revenue:
-            imp = _improvement(
-                result.profit_margin, 0.0,
-                *_PM_BOUNDS, weights["profitMargin"],
-                cur_penalty=pm_penalty, tgt_penalty=0.0,
-            )
+            imp = _v5_improvement("profitability", result.profit_margin, 0.0, weights["profitMargin"])
             candidates.append(_rec(
                 title="Establish Revenue Stream",
                 explanation=(
@@ -177,11 +147,7 @@ class AdvisorService:
                 impact_points=imp,
             ))
         elif result.profit_margin < 10:
-            imp = _improvement(
-                result.profit_margin, 10.0,
-                *_PM_BOUNDS, weights["profitMargin"],
-                cur_penalty=pm_penalty, tgt_penalty=0.0,
-            )
+            imp = _v5_improvement("profitability", result.profit_margin, 10.0, weights["profitMargin"])
             penalty_note = (
                 f", includes {pm_penalty:.0f}-point negative-margin penalty"
                 if pm_penalty > 0 else ""
@@ -254,10 +220,7 @@ class AdvisorService:
 
         # ── Debt ratio ─────────────────────────────────────────────
         if result.debt_ratio > 0.6:
-            imp = _improvement(
-                result.debt_ratio, 0.6,
-                *_DEBT_BOUNDS, weights["debtRatio"], inverted=True,
-            )
+            imp = _v5_improvement("leverage", result.debt_ratio, 0.6, weights["debtRatio"])
             candidates.append(_rec(
                 title="Reduce Leverage Ratio",
                 explanation=(
@@ -279,10 +242,7 @@ class AdvisorService:
                 impact_points=imp,
             ))
         elif result.debt_ratio > 0.3:
-            imp = _improvement(
-                result.debt_ratio, 0.3,
-                *_DEBT_BOUNDS, weights["debtRatio"], inverted=True,
-            )
+            imp = _v5_improvement("leverage", result.debt_ratio, 0.3, weights["debtRatio"])
             candidates.append(_rec(
                 title="Manage Debt Levels",
                 explanation=(
@@ -306,9 +266,7 @@ class AdvisorService:
 
         # ── Liquidity ratio ────────────────────────────────────────
         if result.liquidity_ratio < 1.0:
-            imp = _improvement(
-                result.liquidity_ratio, 1.5, *_LIQ_BOUNDS, weights["liquidity"],
-            )
+            imp = _v5_improvement("liquidity", result.liquidity_ratio, 1.5, weights["liquidity"])
             candidates.append(_rec(
                 title="Restore Working Capital",
                 explanation=(
@@ -331,9 +289,7 @@ class AdvisorService:
                 impact_points=imp,
             ))
         elif result.liquidity_ratio < 1.2:
-            imp = _improvement(
-                result.liquidity_ratio, 1.5, *_LIQ_BOUNDS, weights["liquidity"],
-            )
+            imp = _v5_improvement("liquidity", result.liquidity_ratio, 1.5, weights["liquidity"])
             candidates.append(_rec(
                 title="Strengthen Liquidity Buffer",
                 explanation=(
@@ -356,9 +312,7 @@ class AdvisorService:
                 impact_points=imp,
             ))
         elif result.liquidity_ratio < 2.0:
-            imp = _improvement(
-                result.liquidity_ratio, 2.0, *_LIQ_BOUNDS, weights["liquidity"],
-            )
+            imp = _v5_improvement("liquidity", result.liquidity_ratio, 2.0, weights["liquidity"])
             candidates.append(_rec(
                 title="Optimize Liquidity Position",
                 explanation=(
@@ -409,11 +363,7 @@ class AdvisorService:
 
         # ── Altman Z-Score distress zone ───────────────────────────
         if result.altman_z_score <= 1.81:
-            imp = _improvement(
-                result.altman_z_score, 3.0,
-                *_Z_BOUNDS, weights["zScore"],
-                cur_penalty=z_penalty, tgt_penalty=0.0,
-            )
+            imp = _v5_improvement("stability", result.altman_z_score, 3.0, weights["zScore"])
             candidates.append(_rec(
                 title="Address Solvency Risk",
                 explanation=(
@@ -421,9 +371,8 @@ class AdvisorService:
                     "advisor or turnaround specialist and review your business model viability."
                 ),
                 driver=(
-                    f"Altman Z-Score contributes {z_total:.1f}/100 risk points "
-                    f"(weight: {weights['zScore']*100:.0f}%, includes "
-                    f"{z_penalty:.0f}-point distress penalty)"
+                    f"Stability contributes {round(weights['zScore'] * _v5_component_score('stability', result.altman_z_score), 1):.1f}/100 risk points "
+                    f"(weight: {weights['zScore']*100:.0f}%)"
                 ),
                 comparison=(
                     f"Z-Score of {result.altman_z_score:.2f} is in the distress zone "
@@ -438,9 +387,7 @@ class AdvisorService:
 
         # ── Revenue trend negative ─────────────────────────────────
         if result.revenue_trend < -0.05:
-            imp = _improvement(
-                result.revenue_trend, 0.0, *_REV_BOUNDS, weights["revenueTrend"],
-            )
+            imp = _v5_improvement("growth", result.revenue_trend, 0.0, weights["revenueTrend"])
             if state == _STATE_DISTRESSED:
                 candidates.append(_rec(
                     title="Stabilize Revenue",

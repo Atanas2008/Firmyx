@@ -57,6 +57,8 @@ cp backend/.env.example backend/.env
 # Edit backend/.env and set a strong SECRET_KEY
 ```
 
+> **⚠️ Security:** Never commit `.env` files. If you accidentally committed secrets, rotate them immediately and use `git filter-repo` to purge history.
+
 ### 3. Start everything
 ```bash
 docker-compose up --build

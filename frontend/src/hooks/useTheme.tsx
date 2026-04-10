@@ -35,19 +35,18 @@ function applyTheme(resolved: ResolvedTheme) {
   }
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
+function getInitialThemeState(): { theme: Theme; resolvedTheme: ResolvedTheme } {
+  if (typeof window === 'undefined') return { theme: 'system', resolvedTheme: 'light' };
+  const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+  const theme: Theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+  const resolvedTheme: ResolvedTheme = theme === 'system' ? getSystemTheme() : theme;
+  return { theme, resolvedTheme };
+}
 
-  // Initialize from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const t = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-    setThemeState(t);
-    const resolved = t === 'system' ? getSystemTheme() : t;
-    setResolvedTheme(resolved);
-    applyTheme(resolved);
-  }, []);
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const initial = getInitialThemeState();
+  const [theme, setThemeState] = useState<Theme>(initial.theme);
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(initial.resolvedTheme);
 
   // Listen for OS theme changes when in system mode
   useEffect(() => {

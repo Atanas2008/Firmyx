@@ -1,0 +1,331 @@
+﻿
+tests\test_security.py ...............F.......F..............            [ 55%]
+tests\test_admin_api.py F....................                            [ 86%]
+tests\test_privacy.py .........                                          [100%]
+C:\Users\User1\OneDrive\Desktop\Projects\Firmyx\backend\tests\test_security.py:
+244: assert 401 == 403
+  |         "unhandled errors in a TaskGroup", self._exceptions
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    |     lambda: runtest_hook(item=item, **kwds),
+    |   File "C:\Users\User1\AppData\Roaming\Python\Python314\site-packages\_py
+test\capture.py", line 900, in pytest_runtest_call
+    |   File "C:\Users\User1\AppData\Roaming\Python\Python314\site-packages\_py
+test\skipping.py", line 268, in pytest_runtest_call
+    |   File "C:\Users\User1\AppData\Roaming\Python\Python314\site-packages\_py
+test\runner.py", line 179, in pytest_runtest_call
+    |     self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+    |   File "C:\Users\User1\AppData\Roaming\Python\Python314\site-packages\_py
+test\python.py", line 166, in pytest_pyfunc_call
+    |   File "C:\Users\User1\OneDrive\Desktop\Projects\Firmyx\backend\tests\tes
+t_security.py", line 363, in test_password_change_invalidates_old_tokens
+    |   File "C:\Users\User1\AppData\Roaming\Python\Python314\site-packages\sta
+rlette\middleware\errors.py", line 186, in __call__
+    |   File "C:\Users\User1\AppData\Roaming\Python\Python314\site-packages\sta
+rlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    | TypeError: can't compare offset-naive and offset-aware datetimes
+  File "C:\Users\User1\OneDrive\Desktop\Projects\Firmyx\backend\tests\test_secu
+rity.py", line 363, in test_password_change_invalidates_old_tokens
+  File "C:\Users\User1\AppData\Roaming\Python\Python314\site-packages\starlette
+\middleware\errors.py", line 186, in __call__
+  File "C:\Users\User1\AppData\Roaming\Python\Python314\site-packages\starlette
+\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive_or_disconnect, send_no_error)
+    await self.app(scope, receive_or_disconnect, send_no_error)
+TypeError: can't compare offset-naive and offset-aware datetimes
+E   TypeError: can't compare offset-naive and offset-aware datetimes
+2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | BEGIN 
+(implicit)\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | SELECT 
+users.id AS users_id, users.email AS users_email, users.hashed_password AS 
+users_hashed_password, users.full_name AS users_full_name, users.role AS 
+users_role, users.is_active AS users_is_active, users.password_changed_at AS 
+users_password_changed_at, users.analyses_count AS users_analyses_count, 
+users.is_unlocked AS users_is_unlocked, users.created_at AS users_created_at, 
+users.updated_at AS users_updated_at \nFROM users \nWHERE users.email = ?\n 
+LIMIT ? OFFSET ?\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | 
+[cached since 11.36s ago] ('pwd-change@example.com', 1, 0)\n2026-04-10 
+19:09:15 | INFO     | sqlalchemy.engine.Engine | INSERT INTO users (id, email, 
+hashed_password, full_name, role, is_active, password_changed_at, 
+analyses_count, is_unlocked, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 
+?, ?, ?, ?, ?)\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | 
+[cached since 11.34s ago] ('87c0f0b917f14eff89f134f2d185fdf1', 
+'pwd-change@example.com', 
+'$2b$12$m/2nw8GRxMWzOpmnOgApp.Jjnxa3Bs36B06yXEpXJajd/054x5oL.', 'Change User', 
+'owner', 1, None, 0, 0, '2026-04-10 16:09:15.579462', '2026-04-10 
+16:09:15.579469')\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | 
+COMMIT\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | BEGIN 
+(implicit)\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | SELECT 
+users.id, users.email, users.hashed_password, users.full_name, users.role, 
+users.is_active, users.password_changed_at, users.analyses_count, 
+users.is_unlocked, users.created_at, users.updated_at \nFROM users \nWHERE 
+users.id = ?\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | 
+[cached since 11.34s ago] ('87c0f0b917f14eff89f134f2d185fdf1',)\n2026-04-10 
+19:09:15 | INFO     | firmyx.security | POST /api/auth/register \u2192 201 
+(205.8ms)\n2026-04-10 19:09:15 | INFO     | httpx | HTTP Request: POST 
+http://testserver/api/auth/register "HTTP/1.1 201 Created"\n2026-04-10 
+19:09:15 | INFO     | sqlalchemy.engine.Engine | SELECT users.id AS users_id, 
+users.email AS users_email, users.hashed_password AS users_hashed_password, 
+users.full_name AS users_full_name, users.role AS users_role, users.is_active 
+AS users_is_active, users.password_changed_at AS users_password_changed_at, 
+users.analyses_count AS users_analyses_count, users.is_unlocked AS 
+users_is_unlocked, users.created_at AS users_created_at, users.updated_at AS 
+users_updated_at \nFROM users \nWHERE users.email = ?\n LIMIT ? OFFSET 
+?\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | [cached since 
+11.57s ago] ('pwd-change@example.com', 1, 0)\n2026-04-10 19:09:15 | INFO     | 
+firmyx.security | POST /api/auth/login \u2192 200 (206.1ms)\n2026-04-10 
+19:09:15 | INFO     | httpx | HTTP Request: POST 
+http://testserver/api/auth/login "HTTP/1.1 200 OK"\n2026-04-10 19:09:15 | INFO 
+    | sqlalchemy.engine.Engine | SELECT users.id AS users_id, users.email AS 
+users_email, users.hashed_password AS users_hashed_password, users.full_name 
+AS users_full_name, users.role AS users_role, users.is_active AS 
+users_is_active, users.password_changed_at AS users_password_changed_at, 
+users.analyses_count AS users_analyses_count, users.is_unlocked AS 
+users_is_unlocked, users.created_at AS users_created_at, users.updated_at AS 
+users_updated_at \nFROM users \nWHERE users.id = ?\n LIMIT ? OFFSET 
+?\n2026-04-10 19:09:15 | INFO     | sqlalchemy.engine.Engine | [cached since 
+10.93s ago] ('87c0f0b917f14eff89f134f2d185fdf1', 1, 0)\n2026-04-10 19:09:16 | 
+INFO     | sqlalchemy.engine.Engine | UPDATE users SET hashed_password=?, 
+password_changed_at=?, updated_at=? WHERE users.id = ?\n2026-04-10 19:09:16 | 
+INFO     | sqlalchemy.engine.Engine | [generated in 0.00034s] 
+('$2b$12$4dIfBmQNrUN9nP4RKiqiGOHVAthBXNI7sxz1SxepPW1HoEOGsp7mW', '2026-04-10 
+16:09:16.199095', '2026-04-10 16:09:16.200480', 
+'87c0f0b917f14eff89f134f2d185fdf1')\n2026-04-10 19:09:16 | INFO     | 
+sqlalchemy.engine.Engine | COMMIT\n2026-04-10 19:09:16 | INFO     | 
+firmyx.security | PUT /api/auth/password \u2192 204 (409.4ms)\n2026-04-10 
+19:09:16 | INFO     | httpx | HTTP Request: PUT 
+http://testserver/api/auth/password "HTTP/1.1 204 No Content"\n2026-04-10 
+19:09:16 | INFO     | sqlalchemy.engine.Engine | BEGIN (implicit)\n2026-04-10 
+19:09:16 | INFO     | sqlalchemy.engine.Engine | SELECT users.id AS users_id, 
+users.email AS users_email, users.hashed_password AS users_hashed_password, 
+users.full_name AS users_full_name, users.role AS users_role, users.is_active 
+AS users_is_active, users.password_changed_at AS users_password_changed_at, 
+users.analyses_count AS users_analyses_count, users.is_unlocked AS 
+users_is_unlocked, users.created_at AS users_created_at, users.updated_at AS 
+users_updated_at \nFROM users \nWHERE users.id = ?\n LIMIT ? OFFSET 
+?\n2026-04-10 19:09:16 | INFO     | sqlalchemy.engine.Engine | [cached since 
+11.34s ago] ('87c0f0b917f14eff89f134f2d185fdf1', 1, 0)\n2026-04-10 19:09:16 | 
+ERROR    | firmyx | Unhandled error on GET /api/auth/me\n  + Exception Group 
+Traceback (most recent call last):\n  |   File "C:\\Users\\User1\\AppData\\Roam
+ing\\Python\\Python314\\site-packages\\starlette\\_utils.py", line 81, in 
+collapse_excgroups\n  |     yield\n  |   File "C:\\Users\\User1\\AppData\\Roami
+ng\\Python\\Python314\\site-packages\\starlette\\middleware\\base.py", line 
+192, in __call__\n  |     async with anyio.create_task_group() as 
+task_group:\n  |                ~~~~~~~~~~~~~~~~~~~~~~~^^\n  |   File "C:\\User
+s\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\anyio\\_backends\
+\_asyncio.py", line 799, in __aexit__\n  |     raise BaseExceptionGroup(\n  |  
+       "unhandled errors in a TaskGroup", self._exceptions\n  |     ) from 
+None\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  
++-+---------------- 1 ----------------\n    | Traceback (most recent call 
+last):\n    |   File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\si
+te-packages\\starlette\\middleware\\errors.py", line 164, in __call__\n    |   
+  await self.app(scope, receive, _send)\n    |   File "C:\\Users\\User1\\AppDat
+a\\Roaming\\Python\\Python314\\site-packages\\starlette\\middleware\\cors.py", 
+line 88, in __call__\n    |     await self.app(scope, receive, send)\n    |   
+File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\sta
+rlette\\middleware\\base.py", line 191, in __call__\n    |     with 
+recv_stream, send_stream, collapse_excgroups():\n    |                         
+           ~~~~~~~~~~~~~~~~~~^^\n    |   File 
+"C:\\Python314\\Lib\\contextlib.py", line 162, in __exit__\n    |     
+self.gen.throw(value)\n    |     ~~~~~~~~~~~~~~^^^^^^^\n    |   File "C:\\Users
+\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\_utils.
+py", line 87, in collapse_excgroups\n    |     raise exc\n    |   File "C:\\Use
+rs\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middl
+eware\\base.py", line 193, in __call__\n    |     response = await 
+self.dispatch_func(request, call_next)\n    |                
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File "C:\\Users\\User1\\O
+neDrive\\Desktop\\Projects\\Firmyx\\backend\\app\\middleware\\security.py", 
+line 53, in dispatch\n    |     response = await call_next(request)\n    |     
+           ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File "C:\\Users\\User1\\AppData\\R
+oaming\\Python\\Python314\\site-packages\\starlette\\middleware\\base.py", 
+line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or 
+app_exc.__context__\n    |   File "C:\\Users\\User1\\AppData\\Roaming\\Python\\
+Python314\\site-packages\\starlette\\middleware\\base.py", line 144, in coro\n 
+   |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   
+File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\sta
+rlette\\middleware\\base.py", line 191, in __call__\n    |     with 
+recv_stream, send_stream, collapse_excgroups():\n    |                         
+           ~~~~~~~~~~~~~~~~~~^^\n    |   File 
+"C:\\Python314\\Lib\\contextlib.py", line 162, in __exit__\n    |     
+self.gen.throw(value)\n    |     ~~~~~~~~~~~~~~^^^^^^^\n    |   File "C:\\Users
+\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\_utils.
+py", line 87, in collapse_excgroups\n    |     raise exc\n    |   File "C:\\Use
+rs\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middl
+eware\\base.py", line 193, in __call__\n    |     response = await 
+self.dispatch_func(request, call_next)\n    |                
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File "C:\\Users\\User1\\O
+neDrive\\Desktop\\Projects\\Firmyx\\backend\\app\\middleware\\security.py", 
+line 16, in dispatch\n    |     response = await call_next(request)\n    |     
+           ^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File "C:\\Users\\User1\\AppData\\R
+oaming\\Python\\Python314\\site-packages\\starlette\\middleware\\base.py", 
+line 168, in call_next\n    |     raise app_exc from app_exc.__cause__ or 
+app_exc.__context__\n    |   File "C:\\Users\\User1\\AppData\\Roaming\\Python\\
+Python314\\site-packages\\starlette\\middleware\\base.py", line 144, in coro\n 
+   |     await self.app(scope, receive_or_disconnect, send_no_error)\n    |   
+File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\sta
+rlette\\middleware\\exceptions.py", line 63, in __call__\n    |     await 
+wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n    |   
+File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\sta
+rlette\\_exception_handler.py", line 53, in wrapped_app\n    |     raise exc\n 
+   |   File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packag
+es\\starlette\\_exception_handler.py", line 42, in wrapped_app\n    |     
+await app(scope, receive, sender)\n    |   File "C:\\Users\\User1\\AppData\\Roa
+ming\\Python\\Python314\\site-packages\\fastapi\\middleware\\asyncexitstack.py"
+, line 18, in __call__\n    |     await self.app(scope, receive, send)\n    |  
+ File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\st
+arlette\\routing.py", line 660, in __call__\n    |     await 
+self.middleware_stack(scope, receive, send)\n    |   File "C:\\Users\\User1\\Ap
+pData\\Roaming\\Python\\Python314\\site-packages\\starlette\\routing.py", line 
+680, in app\n    |     await route.handle(scope, receive, send)\n    |   File "
+C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette
+\\routing.py", line 276, in handle\n    |     await self.app(scope, receive, 
+send)\n    |   File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\sit
+e-packages\\fastapi\\routing.py", line 134, in app\n    |     await 
+wrap_app_handling_exceptions(app, request)(scope, receive, send)\n    |   File 
+"C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlett
+e\\_exception_handler.py", line 53, in wrapped_app\n    |     raise exc\n    | 
+  File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\s
+tarlette\\_exception_handler.py", line 42, in wrapped_app\n    |     await 
+app(scope, receive, sender)\n    |   File "C:\\Users\\User1\\AppData\\Roaming\\
+Python\\Python314\\site-packages\\fastapi\\routing.py", line 120, in app\n    
+|     response = await f(request)\n    |                ^^^^^^^^^^^^^^^^\n    
+|   File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\
+\fastapi\\routing.py", line 457, in app\n    |     solved_result = await 
+solve_dependencies(\n    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^\n    
+|     ...<6 lines>...\n    |     )\n    |     ^\n    |   File "C:\\Users\\User1
+\\AppData\\Roaming\\Python\\Python314\\site-packages\\fastapi\\dependencies\\ut
+ils.py", line 680, in solve_dependencies\n    |     solved = await 
+run_in_threadpool(call, **solved_result.values)\n    |              
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File "C:\\Users\
+\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\concurre
+ncy.py", line 32, in run_in_threadpool\n    |     return await 
+anyio.to_thread.run_sync(func)\n    |            
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File "C:\\Users\\User1\\AppData\\
+Roaming\\Python\\Python314\\site-packages\\anyio\\to_thread.py", line 63, in 
+run_sync\n    |     return await 
+get_async_backend().run_sync_in_worker_thread(\n    |            
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |         func, 
+args, abandon_on_cancel=abandon_on_cancel, limiter=limiter\n    |         
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |     
+)\n    |     ^\n    |   File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Pytho
+n314\\site-packages\\anyio\\_backends\\_asyncio.py", line 2518, in 
+run_sync_in_worker_thread\n    |     return await future\n    |            
+^^^^^^^^^^^^\n    |   File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python3
+14\\site-packages\\anyio\\_backends\\_asyncio.py", line 1002, in run\n    |    
+ result = context.run(func, *args)\n    |   File "C:\\Users\\User1\\OneDrive\\D
+esktop\\Projects\\Firmyx\\backend\\app\\services\\auth_service.py", line 80, 
+in get_current_user\n    |     if token_iat < user.password_changed_at:\n    | 
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    | TypeError: can't compare 
+offset-naive and offset-aware datetimes\n    
++------------------------------------\n\nThe above exception was the direct 
+cause of the following exception:\n\nTraceback (most recent call last):\n  
+File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\sta
+rlette\\middleware\\errors.py", line 164, in __call__\n    await 
+self.app(scope, receive, _send)\n  File "C:\\Users\\User1\\AppData\\Roaming\\Py
+thon\\Python314\\site-packages\\starlette\\middleware\\cors.py", line 88, in 
+__call__\n    await self.app(scope, receive, send)\n  File "C:\\Users\\User1\\A
+ppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middleware\\base.
+py", line 191, in __call__\n    with recv_stream, send_stream, 
+collapse_excgroups():\n                                   
+~~~~~~~~~~~~~~~~~~^^\n  File "C:\\Python314\\Lib\\contextlib.py", line 162, in 
+__exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File "C:\\Use
+rs\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\_util
+s.py", line 87, in collapse_excgroups\n    raise exc\n  File "C:\\Users\\User1\
+\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middleware\\bas
+e.py", line 193, in __call__\n    response = await self.dispatch_func(request, 
+call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  
+File "C:\\Users\\User1\\OneDrive\\Desktop\\Projects\\Firmyx\\backend\\app\\midd
+leware\\security.py", line 53, in dispatch\n    response = await 
+call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File "C:\\Users\
+\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middlewa
+re\\base.py", line 168, in call_next\n    raise app_exc from app_exc.__cause__ 
+or app_exc.__context__\n  File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Pyt
+hon314\\site-packages\\starlette\\middleware\\base.py", line 144, in coro\n    
+await self.app(scope, receive_or_disconnect, send_no_error)\n  File "C:\\Users\
+\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middlewa
+re\\base.py", line 191, in __call__\n    with recv_stream, send_stream, 
+collapse_excgroups():\n                                   
+~~~~~~~~~~~~~~~~~~^^\n  File "C:\\Python314\\Lib\\contextlib.py", line 162, in 
+__exit__\n    self.gen.throw(value)\n    ~~~~~~~~~~~~~~^^^^^^^\n  File "C:\\Use
+rs\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\_util
+s.py", line 87, in collapse_excgroups\n    raise exc\n  File "C:\\Users\\User1\
+\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middleware\\bas
+e.py", line 193, in __call__\n    response = await self.dispatch_func(request, 
+call_next)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  
+File "C:\\Users\\User1\\OneDrive\\Desktop\\Projects\\Firmyx\\backend\\app\\midd
+leware\\security.py", line 16, in dispatch\n    response = await 
+call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File "C:\\Users\
+\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middlewa
+re\\base.py", line 168, in call_next\n    raise app_exc from app_exc.__cause__ 
+or app_exc.__context__\n  File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Pyt
+hon314\\site-packages\\starlette\\middleware\\base.py", line 144, in coro\n    
+await self.app(scope, receive_or_disconnect, send_no_error)\n  File "C:\\Users\
+\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\middlewa
+re\\exceptions.py", line 63, in __call__\n    await 
+wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File "C:\
+\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\_
+exception_handler.py", line 53, in wrapped_app\n    raise exc\n  File "C:\\User
+s\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\_excep
+tion_handler.py", line 42, in wrapped_app\n    await app(scope, receive, 
+sender)\n  File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-pa
+ckages\\fastapi\\middleware\\asyncexitstack.py", line 18, in __call__\n    
+await self.app(scope, receive, send)\n  File "C:\\Users\\User1\\AppData\\Roamin
+g\\Python\\Python314\\site-packages\\starlette\\routing.py", line 660, in 
+__call__\n    await self.middleware_stack(scope, receive, send)\n  File "C:\\Us
+ers\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\rout
+ing.py", line 680, in app\n    await route.handle(scope, receive, send)\n  
+File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\sta
+rlette\\routing.py", line 276, in handle\n    await self.app(scope, receive, 
+send)\n  File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-pack
+ages\\fastapi\\routing.py", line 134, in app\n    await 
+wrap_app_handling_exceptions(app, request)(scope, receive, send)\n  File "C:\\U
+sers\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\_ex
+ception_handler.py", line 53, in wrapped_app\n    raise exc\n  File "C:\\Users\
+\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\_excepti
+on_handler.py", line 42, in wrapped_app\n    await app(scope, receive, 
+sender)\n  File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-pa
+ckages\\fastapi\\routing.py", line 120, in app\n    response = await 
+f(request)\n               ^^^^^^^^^^^^^^^^\n  File "C:\\Users\\User1\\AppData\
+\Roaming\\Python\\Python314\\site-packages\\fastapi\\routing.py", line 457, in 
+app\n    solved_result = await solve_dependencies(\n                    
+^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<6 lines>...\n    )\n    ^\n  File "C:\\Users
+\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages\\fastapi\\dependenc
+ies\\utils.py", line 680, in solve_dependencies\n    solved = await 
+run_in_threadpool(call, **solved_result.values)\n             
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "C:\\Users\\User1
+\\AppData\\Roaming\\Python\\Python314\\site-packages\\starlette\\concurrency.py
+", line 32, in run_in_threadpool\n    return await 
+anyio.to_thread.run_sync(func)\n           
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "C:\\Users\\User1\\AppData\\Roamin
+g\\Python\\Python314\\site-packages\\anyio\\to_thread.py", line 63, in 
+run_sync\n    return await get_async_backend().run_sync_in_worker_thread(\n    
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        func, 
+args, abandon_on_cancel=abandon_on_cancel, limiter=limiter\n        
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    
+^\n  File "C:\\Users\\User1\\AppData\\Roaming\\Python\\Python314\\site-packages
+\\anyio\\_backends\\_asyncio.py", line 2518, in run_sync_in_worker_thread\n    
+return await future\n           ^^^^^^^^^^^^\n  File "C:\\Users\\User1\\AppData
+\\Roaming\\Python\\Python314\\site-packages\\anyio\\_backends\\_asyncio.py", 
+line 1002, in run\n    result = context.run(func, *args)\n  File "C:\\Users\\Us
+er1\\OneDrive\\Desktop\\Projects\\Firmyx\\backend\\app\\services\\auth_service.
+py", line 80, in get_current_user\n    if token_iat < 
+user.password_changed_at:\n       
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: can't compare offset-naive 
+and offset-aware datetimes
+C:\Users\User1\OneDrive\Desktop\Projects\Firmyx\backend\app\services\auth_servi
+ce.py:80: TypeError: can't compare offset-naive and offset-aware datetimes
+C:\Users\User1\OneDrive\Desktop\Projects\Firmyx\backend\tests\test_admin_api.py
+:70: assert 401 == 403
+  C:\Users\User1\OneDrive\Desktop\Projects\Firmyx\backend\app\config.py:16: 
+PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use 
+ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See 
+Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+FAILED tests/test_security.py::TestJWTSecurity::test_no_token_returns_403 - 
+a...
+FAILED tests/test_security.py::TestPasswordSecurity::test_password_change_inval
+idates_old_tokens
+FAILED tests/test_admin_api.py::TestTripleGate::test_no_auth_at_all - assert 
+...
+================= 3 failed, 65 passed, 17 warnings in 36.72s ==================
+
+

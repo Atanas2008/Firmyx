@@ -43,8 +43,9 @@ export default function BusinessDetailPage() {
           analysisApi.list(id),
         ]);
         setBusiness(bRes.data);
-        if (aRes.data.length > 0) {
-          const sorted = [...aRes.data].sort(
+        const analysisItems = aRes.data.items ?? aRes.data;
+        if (analysisItems.length > 0) {
+          const sorted = [...analysisItems].sort(
             (a, b) =>
               new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );

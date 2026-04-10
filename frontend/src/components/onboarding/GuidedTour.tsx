@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { useLanguage } from '@/hooks/useLanguage';
 
@@ -20,23 +20,53 @@ export function GuidedTour({ onComplete, onSkip }: GuidedTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  const steps: TourStep[] = [
+  const steps: TourStep[] = useMemo(() => [
     {
-      targetId: 'tour-decision-header',
+      targetId: 'tour-insight-banner',
       title: t.onboarding.tourStep1Title,
       description: t.onboarding.tourStep1Desc,
     },
     {
-      targetId: 'tour-risk-drivers',
+      targetId: 'tour-urgency-alerts',
       title: t.onboarding.tourStep2Title,
       description: t.onboarding.tourStep2Desc,
     },
     {
-      targetId: 'tour-recommendations',
+      targetId: 'tour-decision-header',
       title: t.onboarding.tourStep3Title,
       description: t.onboarding.tourStep3Desc,
     },
-  ];
+    {
+      targetId: 'tour-executive-summary',
+      title: t.onboarding.tourStep4Title,
+      description: t.onboarding.tourStep4Desc,
+    },
+    {
+      targetId: 'tour-key-metrics',
+      title: t.onboarding.tourStep5Title,
+      description: t.onboarding.tourStep5Desc,
+    },
+    {
+      targetId: 'tour-risk-drivers',
+      title: t.onboarding.tourStep6Title,
+      description: t.onboarding.tourStep6Desc,
+    },
+    {
+      targetId: 'tour-recommendations',
+      title: t.onboarding.tourStep7Title,
+      description: t.onboarding.tourStep7Desc,
+    },
+    {
+      targetId: 'tour-charts',
+      title: t.onboarding.tourStep8Title,
+      description: t.onboarding.tourStep8Desc,
+    },
+    {
+      targetId: 'tour-benchmark',
+      title: t.onboarding.tourStep9Title,
+      description: t.onboarding.tourStep9Desc,
+    },
+  ], [t]);
 
   const positionTooltip = useCallback(() => {
     const step = steps[currentStep];
@@ -44,23 +74,32 @@ export function GuidedTour({ onComplete, onSkip }: GuidedTourProps) {
     const el = document.getElementById(step.targetId);
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const scrollY = window.scrollY;
     setTooltipPos({
-      top: rect.top + scrollY + rect.height + 12,
+      top: rect.top + rect.height + 12,
       left: rect.left + rect.width / 2,
       width: rect.width,
     });
-    // Scroll element into view
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [currentStep, steps]);
 
+  // Scroll to target element when step changes
   useEffect(() => {
-    // Small delay to let page render
-    const timer = setTimeout(positionTooltip, 400);
+    const step = steps[currentStep];
+    if (!step) return;
+    const el = document.getElementById(step.targetId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [currentStep, steps]);
+
+  // Position tooltip and track viewport changes
+  useEffect(() => {
+    const timer = setTimeout(positionTooltip, 500);
     window.addEventListener('resize', positionTooltip);
+    window.addEventListener('scroll', positionTooltip, { passive: true } as AddEventListenerOptions);
     return () => {
       clearTimeout(timer);
       window.removeEventListener('resize', positionTooltip);
+      window.removeEventListener('scroll', positionTooltip);
     };
   }, [positionTooltip]);
 
@@ -76,10 +115,7 @@ export function GuidedTour({ onComplete, onSkip }: GuidedTourProps) {
 
   return (
     <>
-      {/* Semi-transparent backdrop */}
-      <div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-[1px] pointer-events-auto" />
-
-      {/* Highlight ring on target element */}
+      {/* Highlight ring on target element with spotlight effect */}
       <HighlightRing targetId={step.targetId} />
 
       {/* Tooltip */}
@@ -91,7 +127,7 @@ export function GuidedTour({ onComplete, onSkip }: GuidedTourProps) {
             left: Math.max(16, Math.min(tooltipPos.left - 160, window.innerWidth - 336)),
           }}
         >
-          <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-5">
+          <div className="rounded-xl bg-white/80 dark:bg-gray-900/70 backdrop-blur-xl border border-gray-200/60 dark:border-gray-600/40 shadow-2xl p-5">
             {/* Progress */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex gap-1.5">
@@ -158,15 +194,39 @@ function HighlightRing({ targetId }: { targetId: string }) {
 
   if (!rect) return null;
 
+  const pad = 4;
+  const top = rect.top - pad;
+  const left = rect.left - pad;
+  const w = rect.width + pad * 2;
+  const h = rect.height + pad * 2;
+
   return (
-    <div
-      className="fixed z-[65] rounded-xl ring-4 ring-blue-500/50 pointer-events-none transition-all duration-300"
-      style={{
-        top: rect.top - 4,
-        left: rect.left - 4,
-        width: rect.width + 8,
-        height: rect.height + 8,
-      }}
-    />
+    <>
+      {/* Dark overlay with cutout for highlighted element */}
+      <div
+        className="fixed inset-0 z-[60] pointer-events-auto transition-all duration-300"
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          clipPath: `polygon(
+            0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
+            ${left}px ${top}px,
+            ${left}px ${top + h}px,
+            ${left + w}px ${top + h}px,
+            ${left + w}px ${top}px,
+            ${left}px ${top}px
+          )`,
+        }}
+      />
+      {/* Blue highlight ring */}
+      <div
+        className="fixed z-[65] rounded-xl ring-4 ring-blue-500/50 pointer-events-none transition-all duration-300"
+        style={{
+          top,
+          left,
+          width: w,
+          height: h,
+        }}
+      />
+    </>
   );
 }

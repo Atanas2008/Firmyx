@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { businessApi, financialApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { BusinessTabs } from '@/components/layout/BusinessTabs';
 import { Card } from '@/components/ui/Card';
@@ -24,6 +25,9 @@ type Tab = 'manual' | 'upload';
 export default function FinancialsPage() {
   const { id } = useParams<{ id: string }>();
   const { language, t } = useLanguage();
+  const { user } = useAuth();
+  const monthlyTemplateUrl = language === 'bg' ? '/template_monthly_bg.xlsx' : '/template_monthly_en.xlsx';
+  const annualTemplateUrl = language === 'bg' ? '/template_annual_bg.xlsx' : '/template_annual_en.xlsx';
   const [business, setBusiness] = useState<Business | null>(null);
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [tab, setTab] = useState<Tab>('manual');
@@ -63,15 +67,16 @@ export default function FinancialsPage() {
         financialApi.list(id),
       ]);
       setBusiness(bRes.data);
+      const items = rRes.data.items ?? rRes.data;
       setRecords(
-        [...rRes.data].sort((a, b) =>
+        [...items].sort((a, b) =>
           a.period_year !== b.period_year
             ? b.period_year - a.period_year
             : b.period_month - a.period_month
         )
       );
-      if (rRes.data.length > 0) {
-        const sorted = [...rRes.data].sort((a, b) =>
+      if (items.length > 0) {
+        const sorted = [...items].sort((a, b) =>
           a.period_year !== b.period_year
             ? b.period_year - a.period_year
             : b.period_month - a.period_month
@@ -155,6 +160,19 @@ export default function FinancialsPage() {
       {/* Navigation tabs */}
       <BusinessTabs businessId={id} activeTab="financials" />
 
+      {/* Early access limit overlay */}
+      {user && !user.is_unlocked && user.analyses_count >= 1 && (
+        <div className="mb-6 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-700 dark:text-amber-300 flex items-center justify-between gap-4">
+          <span>{t.limit.freePlanUsed}</span>
+          <a
+            href="mailto:support@firmyx.com"
+            className="flex-shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+          >
+            {t.limit.contactUs}
+          </a>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Input form */}
         <div className="lg:col-span-3">
@@ -208,14 +226,14 @@ export default function FinancialsPage() {
                 </p>
                 <div className="mb-4 flex flex-wrap gap-4">
                   <a
-                    href="/template.csv"
+                    href={monthlyTemplateUrl}
                     download
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >
                     {t.financials.monthlyTemplate}
                   </a>
                   <a
-                    href="/template_annual.csv"
+                    href={annualTemplateUrl}
                     download
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >

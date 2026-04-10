@@ -7,17 +7,25 @@ import { useLanguage } from '@/hooks/useLanguage';
 
 export function EntryScreen() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* Top bar */}
       <header className="flex items-center justify-between px-6 py-4 lg:px-10">
         <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Firmyx" className="h-14 dark:hidden" />
-          <img src="/logo-dark.png" alt="Firmyx" className="h-14 hidden dark:block" />
+          <img src="/logo.png" alt="Firmyx" className="h-20 dark:hidden" />
+          <img src="/logo-dark.png" alt="Firmyx" className="h-20 hidden dark:block" />
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'bg' : 'en')}
+            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <span className={language === 'en' ? 'text-blue-600 dark:text-blue-400 font-semibold' : ''}>EN</span>
+            <span className="text-gray-300 dark:text-gray-700">/</span>
+            <span className={language === 'bg' ? 'text-blue-600 dark:text-blue-400 font-semibold' : ''}>BG</span>
+          </button>
           <Link
             href="/login"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"

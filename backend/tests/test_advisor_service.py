@@ -110,6 +110,44 @@ class TestGenerateRecommendations:
         recs = advisor.generate_recommendations(result)
         assert len(recs) <= 7
 
+    def test_zero_revenue_recommends_establish_revenue(self):
+        advisor = AdvisorService()
+        result = _make_result(
+            risk_score=85.0,
+            risk_level="critical",
+            profit_margin=-100.0,
+            burn_rate=10000.0,
+            cash_runway_months=2.0,
+            bankruptcy_probability=50.0,
+        )
+        recs = advisor.generate_recommendations(result)
+        titles = [r["title"] for r in recs]
+        assert "Establish Revenue Stream" in titles
+
+    def test_distressed_never_recommends_deploy_excess_liquidity(self):
+        advisor = AdvisorService()
+        result = _make_result(
+            risk_score=70.0,
+            risk_level="high",
+            profit_margin=-10.0,
+            burn_rate=20000.0,
+            cash_runway_months=4.0,
+            debt_ratio=0.7,
+            liquidity_ratio=3.0,
+            altman_z_score=1.0,
+            bankruptcy_probability=35.0,
+        )
+        recs = advisor.generate_recommendations(result)
+        titles = [r["title"] for r in recs]
+        assert "Deploy Excess Liquidity" not in titles
+
+    def test_recommendation_count_between_3_and_7(self):
+        advisor = AdvisorService()
+        for risk_score, risk_level in [(20, "low"), (50, "medium"), (75, "high"), (90, "critical")]:
+            result = _make_result(risk_score=float(risk_score), risk_level=risk_level)
+            recs = advisor.generate_recommendations(result)
+            assert 3 <= len(recs) <= 7, f"Expected 3-7 recs for risk_score={risk_score}, got {len(recs)}"
+
 
 class TestGenerateRiskExplanation:
     def test_returns_nonempty_string(self):

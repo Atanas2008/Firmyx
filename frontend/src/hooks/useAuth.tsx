@@ -9,12 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { User } from '@/types';
-import {
-  getCurrentUser,
-  isAuthenticated,
-  setTokens,
-  logout as authLogout,
-} from '@/lib/auth';
+import { logout as authLogout, markLoggedIn, clearTokens, isAuthenticated } from '@/lib/auth';
 import { authApi } from '@/lib/api';
 
 interface AuthContextValue {
@@ -32,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadUser = useCallback(async () => {
+    // Only probe /me if we believe we're logged in (indicator cookie present)
     if (!isAuthenticated()) {
       setUser(null);
       setLoading(false);
@@ -41,7 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await authApi.me();
       setUser(data);
     } catch {
-      setUser(getCurrentUser());
+      // Cookie exists but /me failed — session expired, clean up
+      clearTokens();
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -51,20 +49,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser();
   }, [loadUser]);
 
+  useEffect(() => {
+    const handleExpired = () => {
+      setUser(null);
+      authLogout();
+    };
+    window.addEventListener('firmyx:auth-expired', handleExpired);
+    return () => window.removeEventListener('firmyx:auth-expired', handleExpired);
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
+    // Login sets httpOnly cookies; response body is the User object
     const { data } = await authApi.login(email, password);
-    setTokens(data.access_token, data.refresh_token);
-    try {
-      const { data: me } = await authApi.me();
-      setUser(me);
-    } catch {
-      setUser(getCurrentUser());
-    }
+    markLoggedIn(); // Set indicator cookie for SSR middleware
+    setUser(data);
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    authLogout();
+    // Call backend to blacklist token and clear cookies, then redirect
+    authApi.logout().catch(() => {}).finally(() => authLogout());
   }, []);
 
   return (
@@ -81,3 +85,4 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
+

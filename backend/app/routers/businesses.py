@@ -14,7 +14,7 @@ from app.dependencies import get_owned_business
 router = APIRouter()
 
 
-@router.get("", response_model=List[BusinessRead])
+@router.get("")
 def list_businesses(
     skip: int = 0,
     limit: int = 100,
@@ -23,7 +23,16 @@ def list_businesses(
 ):
     """List all businesses owned by the authenticated user (paginated)."""
     limit = min(limit, 100)  # Cap at 100 per page
-    return BusinessRepository(db).get_by_owner(current_user.id, skip=skip, limit=limit)
+    repo = BusinessRepository(db)
+    businesses = repo.get_by_owner(current_user.id, skip=skip, limit=limit)
+    total = repo.count_by_owner(current_user.id)
+    return {
+        "items": businesses,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "has_more": skip + limit < total,
+    }
 
 
 @router.post("", response_model=BusinessRead, status_code=status.HTTP_201_CREATED)

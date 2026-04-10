@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     REPORTS_DIR: str = "./reports"
     GEMINI_API_KEY: str = ""  # Set in .env; empty string = feature disabled
     REDIS_URL: str = "redis://redis:6379/0"
+    ADMIN_SECRET: str = ""  # Required for admin panel access. Set in .env
+    SENTRY_DSN: str = ""  # Set in .env to enable Sentry error tracking
 
     # ─── Application ──────────────────────────────────────────────────────────
     ENVIRONMENT: str = "development"

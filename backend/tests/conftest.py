@@ -83,7 +83,17 @@ def auth_headers(client):
             "password": "TestPass123",
         },
     )
-    token = resp.json()["access_token"]
+    # Login now sets httpOnly cookies; extract from Set-Cookie for Bearer fallback
+    # The TestClient stores cookies automatically, so authenticated requests via
+    # client.get/post will include the cookie automatically.
+    # For tests that explicitly pass headers, we build the token from the cookie.
+    cookies = resp.cookies
+    token = cookies.get("access_token")
+    if token:
+        return {"Authorization": f"Bearer {token}"}
+    # Fallback: try legacy JSON body (should not happen after migration)
+    body = resp.json()
+    token = body.get("access_token", "")
     return {"Authorization": f"Bearer {token}"}
 
 

@@ -38,7 +38,7 @@ export default function ReportsPage() {
         analysisApi.list(id),
       ]);
       setBusiness(bRes.data);
-      const analysisData = [...aRes.data] as RiskAnalysis[];
+      const analysisData = (aRes.data.items ?? aRes.data) as RiskAnalysis[];
       const sortedAnalyses = [...analysisData].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -50,7 +50,7 @@ export default function ReportsPage() {
         return sortedAnalyses[0]?.id ?? '';
       });
       setReports(
-        [...rRes.data].sort(
+        [...(rRes.data.items ?? rRes.data)].sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )

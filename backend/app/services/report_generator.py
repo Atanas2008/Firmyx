@@ -24,12 +24,22 @@ from app.models.business import Business
 
 # Risk level color mapping
 RISK_COLORS = {
+    # v5.0 levels
+    RiskLevel.low: colors.HexColor("#2ecc71"),
+    RiskLevel.medium: colors.HexColor("#f39c12"),
+    RiskLevel.high: colors.HexColor("#e74c3c"),
+    RiskLevel.critical: colors.HexColor("#8b0000"),
+    # Legacy levels (for old reports)
     RiskLevel.safe: colors.HexColor("#2ecc71"),
     RiskLevel.moderate_risk: colors.HexColor("#f39c12"),
     RiskLevel.high_risk: colors.HexColor("#e74c3c"),
 }
 
 RISK_LABELS = {
+    RiskLevel.low: "LOW RISK",
+    RiskLevel.medium: "MODERATE RISK",
+    RiskLevel.high: "HIGH RISK",
+    RiskLevel.critical: "CRITICAL RISK",
     RiskLevel.safe: "SAFE",
     RiskLevel.moderate_risk: "MODERATE RISK",
     RiskLevel.high_risk: "HIGH RISK",

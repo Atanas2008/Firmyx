@@ -2,7 +2,9 @@ export interface User {
   id: string;
   email: string;
   full_name: string;
-  role: 'owner' | 'accountant' | 'viewer';
+  role: 'admin' | 'owner' | 'accountant' | 'viewer';
+  analyses_count: number;
+  is_unlocked: boolean;
 }
 
 export interface Business {
@@ -111,7 +113,7 @@ export interface RegisterData {
   full_name: string;
   email: string;
   password: string;
-  role?: 'owner' | 'accountant' | 'viewer';
+  role?: 'admin' | 'owner' | 'accountant' | 'viewer';
 }
 
 export interface CreateBusinessData {

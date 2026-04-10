@@ -54,11 +54,11 @@ class TestBusinessCreateValidation:
             BusinessCreate(name="")
 
     def test_negative_employees_rejected(self):
-        with pytest.raises(ValidationError, match="negative"):
+        with pytest.raises(ValidationError, match="must be between 0"):
             BusinessCreate(name="Test", num_employees=-5)
 
     def test_negative_years_rejected(self):
-        with pytest.raises(ValidationError, match="negative"):
+        with pytest.raises(ValidationError, match="must be between 0"):
             BusinessCreate(name="Test", years_operating=-1)
 
     def test_name_trimmed(self):

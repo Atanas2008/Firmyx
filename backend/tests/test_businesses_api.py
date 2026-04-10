@@ -34,8 +34,8 @@ class TestListBusinesses:
         resp = client.get("/api/businesses", headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
-        assert len(data) >= 1
-        assert any(b["name"] == "Test Corp" for b in data)
+        assert data["total"] >= 1
+        assert any(b["name"] == "Test Corp" for b in data["items"])
 
     def test_list_empty_for_new_user(self, client):
         # Register a new user with no businesses
@@ -51,13 +51,15 @@ class TestListBusinesses:
             "/api/auth/login",
             json={"email": "empty@example.com", "password": "StrongPass1"},
         )
-        token = login_resp.json()["access_token"]
+        token = login_resp.cookies.get("access_token", "")
         resp = client.get(
             "/api/businesses",
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 200
-        assert resp.json() == []
+        data = resp.json()
+        assert data["items"] == []
+        assert data["total"] == 0
 
 
 class TestGetBusiness:
@@ -88,7 +90,7 @@ class TestGetBusiness:
             "/api/auth/login",
             json={"email": "other@example.com", "password": "StrongPass1"},
         )
-        other_token = login_resp.json()["access_token"]
+        other_token = login_resp.cookies.get("access_token", "")
         other_headers = {"Authorization": f"Bearer {other_token}"}
 
         bid = test_business["id"]

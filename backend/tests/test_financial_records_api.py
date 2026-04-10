@@ -112,7 +112,7 @@ class TestDeleteRecord:
             "/api/auth/login",
             json={"email": "other2@example.com", "password": "StrongPass1"},
         )
-        other_token = login_resp.json()["access_token"]
+        other_token = login_resp.cookies.get("access_token", "")
         other_headers = {"Authorization": f"Bearer {other_token}"}
 
         bid = test_business["id"]

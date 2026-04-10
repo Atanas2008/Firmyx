@@ -6,11 +6,13 @@ import Link from 'next/link';
 import { Play, DollarSign, BarChart3 } from 'lucide-react';
 import { businessApi, analysisApi, financialApi } from '@/lib/api';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { LimitReachedModal } from '@/components/LimitReachedModal';
 import { BusinessTabs } from '@/components/layout/BusinessTabs';
 import { DecisionHeader } from '@/components/analysis/DecisionHeader';
 import { ExecutiveSummary } from '@/components/analysis/ExecutiveSummary';
@@ -37,6 +39,7 @@ import type { Business, RiskAnalysis, FinancialRecord } from '@/types';
 export default function AnalysisPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [analyses, setAnalyses] = useState<RiskAnalysis[]>([]);
   const [financials, setFinancials] = useState<FinancialRecord[]>([]);
@@ -45,6 +48,7 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const askAiRef = useRef<((question: string) => void) | null>(null);
 
   const askAi = useCallback((question: string) => {
@@ -54,6 +58,10 @@ export default function AnalysisPage() {
   function extractErrorMessage(err: unknown): string {
     const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
     if (typeof detail === 'string') {
+      if (detail === 'FREE_LIMIT_REACHED') {
+        setLimitModalOpen(true);
+        return '';
+      }
       return detail;
     }
     if (detail && typeof detail === 'object') {
@@ -71,13 +79,15 @@ export default function AnalysisPage() {
         financialApi.list(id),
       ]);
       setBusiness(bRes.data);
+      const analysisItems = aRes.data.items ?? aRes.data;
       setAnalyses(
-        [...aRes.data].sort(
+        [...analysisItems].sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
       );
-      setFinancials(fRes.data);
+      const financialItems = fRes.data.items ?? fRes.data;
+      setFinancials(financialItems);
     } finally {
       setLoading(false);
     }
@@ -157,6 +167,8 @@ export default function AnalysisPage() {
 
   if (loading) return <LoadingSpinner fullPage />;
 
+  const isLimitReached = user ? !user.is_unlocked && user.analyses_count >= 1 : false;
+
   return (
     <>
     <div>
@@ -174,7 +186,7 @@ export default function AnalysisPage() {
               variant="secondary"
               onClick={runLatestAnalysis}
               loading={runningMode === 'latest'}
-              disabled={financials.length === 0 || runningMode !== null}
+              disabled={financials.length === 0 || runningMode !== null || isLimitReached}
             >
               <Play className="h-4 w-4" />
               {t.analysis.runLatest}
@@ -183,7 +195,7 @@ export default function AnalysisPage() {
               variant="secondary"
               onClick={runAllMonthsAnalysis}
               loading={runningMode === 'all-months'}
-              disabled={financials.length === 0 || runningMode !== null}
+              disabled={financials.length === 0 || runningMode !== null || isLimitReached}
             >
               <Play className="h-4 w-4" />
               {t.analysis.runAllMonths}
@@ -191,7 +203,7 @@ export default function AnalysisPage() {
             <Button
               onClick={runCombinedAnalysis}
               loading={runningMode === 'combined'}
-              disabled={financials.length === 0 || runningMode !== null}
+              disabled={financials.length === 0 || runningMode !== null || isLimitReached}
             >
               <Play className="h-4 w-4" />
               {t.analysis.runCombined}
@@ -202,6 +214,19 @@ export default function AnalysisPage() {
 
       {/* Navigation tabs */}
       <BusinessTabs businessId={id} activeTab="analysis" />
+
+      {/* Early access limit banner */}
+      {isLimitReached && (
+        <div className="mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-700 dark:text-amber-300 flex items-center justify-between gap-4">
+          <span>{t.limit.earlyAccessBanner}</span>
+          <a
+            href="mailto:support@firmyx.com"
+            className="flex-shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+          >
+            {t.limit.contactUs}
+          </a>
+        </div>
+      )}
 
       {errorMsg && (
         <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
@@ -432,6 +457,9 @@ export default function AnalysisPage() {
     {latest && (
       <AiChatPanel businessId={id} analysis={latest} onAskRef={askAiRef} />
     )}
+
+    {/* Free limit reached modal */}
+    <LimitReachedModal open={limitModalOpen} onClose={() => setLimitModalOpen(false)} />
     </>
   );
 }

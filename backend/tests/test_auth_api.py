@@ -79,9 +79,14 @@ class TestLogin:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["token_type"] == "bearer"
+        # Login now returns UserRead — check for user fields
+        assert data["email"] == "login@example.com"
+        assert "id" in data
+        # Tokens must be set as httpOnly cookies (not exposed in body)
+        assert "access_token" in resp.cookies
+        assert "refresh_token" in resp.cookies
+        assert "access_token" not in data
+        assert "refresh_token" not in data
 
     def test_login_wrong_password(self, client):
         client.post(
@@ -116,21 +121,21 @@ class TestRefreshToken:
                 "full_name": "Refresh User",
             },
         )
-        login_resp = client.post(
+        # Login sets cookies on the TestClient session
+        client.post(
             "/api/auth/login",
             json={"email": "refresh@example.com", "password": "StrongPass1"},
         )
-        refresh_token = login_resp.json()["refresh_token"]
-        resp = client.post(
-            "/api/auth/refresh",
-            headers={"Authorization": f"Bearer {refresh_token}"},
-        )
+        # Refresh uses the cookie set by login (TestClient sends cookies automatically)
+        resp = client.post("/api/auth/refresh")
         assert resp.status_code == 200
         data = resp.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
+        # Refresh now returns UserRead and sets new cookies
+        assert "id" in data
+        assert "access_token" in resp.cookies
 
-    def test_refresh_with_access_token_fails(self, client):
+    def test_refresh_with_access_token_as_bearer_fails(self, client):
+        """Sending an access token via Bearer to /refresh should fail."""
         client.post(
             "/api/auth/register",
             json={
@@ -143,7 +148,7 @@ class TestRefreshToken:
             "/api/auth/login",
             json={"email": "accref@example.com", "password": "StrongPass1"},
         )
-        access_token = login_resp.json()["access_token"]
+        access_token = login_resp.cookies.get("access_token")
         resp = client.post(
             "/api/auth/refresh",
             headers={"Authorization": f"Bearer {access_token}"},
@@ -169,3 +174,4 @@ class TestMe:
     def test_me_no_token(self, client):
         resp = client.get("/api/auth/me")
         assert resp.status_code in (401, 403)
+

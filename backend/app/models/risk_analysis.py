@@ -23,8 +23,8 @@ class RiskAnalysis(Base):
     __tablename__ = "risk_analyses"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
-    financial_record_id = Column(UUID(as_uuid=True), ForeignKey("financial_records.id", ondelete="CASCADE"), nullable=False)
+    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True)
+    financial_record_id = Column(UUID(as_uuid=True), ForeignKey("financial_records.id", ondelete="CASCADE"), nullable=False, index=True)
     profit_margin = Column(Float, nullable=True)
     burn_rate = Column(Float, nullable=True)
     cash_runway_months = Column(Float, nullable=True)

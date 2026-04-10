@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ScrollToTop } from '@/components/ui/ScrollToTop';
 
 export default function DashboardLayout({
@@ -23,8 +23,7 @@ export default function DashboardLayout({
     }
   }, [loading, isLoggedIn, router]);
 
-  if (loading) return <LoadingSpinner fullPage />;
-  if (!isLoggedIn) return null;
+  if (!loading && !isLoggedIn) return null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
@@ -54,6 +53,7 @@ export default function DashboardLayout({
           </div>
           <ScrollToTop />
         </main>
+        <Footer />
       </div>
     </div>
   );

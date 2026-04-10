@@ -1,76 +1,27 @@
 import type { User } from '@/types';
+import Cookies from 'js-cookie';
 
-const ACCESS_TOKEN_KEY = 'firmyx_access_token';
-const REFRESH_TOKEN_KEY = 'firmyx_refresh_token';
+// ─── Auth state ───────────────────────────────────────────────────────────────
+// Tokens are stored in httpOnly cookies set by the backend.
+// The frontend CANNOT read them — that's the security guarantee.
+// We use a non-sensitive indicator cookie `firmyx_logged_in` so that
+// Next.js middleware.ts can detect auth state for SSR redirects.
 
-// ─── Storage helpers (SSR-safe) ───────────────────────────────────────────────
+const LOGGED_IN_COOKIE = 'firmyx_logged_in';
 
-export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
-}
-
-export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
-}
-
-export function setTokens(accessToken: string, refreshToken: string): void {
+export function markLoggedIn(): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  Cookies.set(LOGGED_IN_COOKIE, '1', { path: '/', sameSite: 'lax' });
 }
 
 export function clearTokens(): void {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-}
-
-// ─── JWT helpers ─────────────────────────────────────────────────────────────
-
-interface JwtPayload {
-  sub: string;
-  email?: string;
-  full_name?: string;
-  role?: 'owner' | 'accountant' | 'viewer';
-  exp?: number;
-}
-
-function decodeJwt(token: string): JwtPayload | null {
-  try {
-    const base64 = token.split('.')[1];
-    if (!base64) return null;
-    const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(json) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
-
-export function getCurrentUser(): User | null {
-  const token = getAccessToken();
-  if (!token) return null;
-  const payload = decodeJwt(token);
-  if (!payload) return null;
-  return {
-    id: payload.sub,
-    email: payload.email ?? '',
-    full_name: payload.full_name ?? '',
-    role: payload.role ?? 'viewer',
-  };
+  Cookies.remove(LOGGED_IN_COOKIE, { path: '/' });
 }
 
 export function isAuthenticated(): boolean {
-  const token = getAccessToken();
-  if (!token) return false;
-  const payload = decodeJwt(token);
-  if (!payload) return false;
-  if (payload.exp && payload.exp * 1000 < Date.now()) {
-    clearTokens();
-    return false;
-  }
-  return true;
+  if (typeof window === 'undefined') return false;
+  return Cookies.get(LOGGED_IN_COOKIE) === '1';
 }
 
 export function logout(): void {
@@ -79,3 +30,22 @@ export function logout(): void {
     window.location.href = '/login';
   }
 }
+
+// ─── Kept for legacy call sites ──────────────────────────────────────────────
+
+export function getAccessToken(): string | null {
+  return null;
+}
+
+export function getRefreshToken(): string | null {
+  return null;
+}
+
+export function setTokens(_accessToken: string, _refreshToken: string): void {
+  // Tokens are set by the backend via Set-Cookie — nothing to do here.
+}
+
+export function getCurrentUser(): User | null {
+  return null;
+}
+

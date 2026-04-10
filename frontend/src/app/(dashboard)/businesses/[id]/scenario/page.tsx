@@ -26,7 +26,7 @@ export default function ScenarioPage() {
         financialApi.list(id),
       ]);
       setBusiness(bRes.data);
-      setFinancials(fRes.data);
+      setFinancials(fRes.data.items ?? fRes.data);
     } finally {
       setLoading(false);
     }

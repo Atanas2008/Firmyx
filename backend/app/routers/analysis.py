@@ -29,6 +29,8 @@ from app.services.ai_chat import AIChatService
 from app.config import settings
 from app.middleware.rate_limiter import limiter
 from app.dependencies import get_owned_business
+from app.services.auth_service import get_current_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -124,12 +126,17 @@ def _build_combined_record(records):
 def run_analysis(
     request: Request,
     business: Business = Depends(get_owned_business),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     Run a financial risk analysis on the most recent financial record for the business.
     Returns the full analysis result including risk score, metrics, and recommendations.
     """
+    # Early access limit enforcement
+    if not current_user.is_unlocked and current_user.analyses_count >= 1:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="FREE_LIMIT_REACHED")
+
     record_repo = FinancialRecordRepository(db)
     latest = record_repo.get_latest(business.id)
     if not latest:
@@ -156,15 +163,23 @@ def run_analysis(
         all_records=all_records,
     )
 
-    return RiskAnalysisRepository(db).create(analysis_data)
+    result = RiskAnalysisRepository(db).create(analysis_data)
+    current_user.analyses_count += 1
+    db.commit()
+    return result
 
 
 @router.post("/{business_id}/analyze/all-months", response_model=List[RiskAnalysisRead], status_code=status.HTTP_201_CREATED)
 def run_all_months_analysis(
     business: Business = Depends(get_owned_business),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Run and persist one analysis per available financial month for the business."""
+    # Early access limit enforcement
+    if not current_user.is_unlocked and current_user.analyses_count >= 1:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="FREE_LIMIT_REACHED")
+
     record_repo = FinancialRecordRepository(db)
     records = record_repo.get_all_by_business(business.id)
     if not records:
@@ -192,15 +207,22 @@ def run_all_months_analysis(
         )
         created.append(repo.create(analysis_data))
 
+    current_user.analyses_count += 1
+    db.commit()
     return created
 
 
 @router.post("/{business_id}/analyze/combined", response_model=RiskAnalysisRead, status_code=status.HTTP_201_CREATED)
 def run_combined_analysis(
     business: Business = Depends(get_owned_business),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Run and persist a single combined analysis across all available months."""
+    # Early access limit enforcement
+    if not current_user.is_unlocked and current_user.analyses_count >= 1:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="FREE_LIMIT_REACHED")
+
     record_repo = FinancialRecordRepository(db)
     records = record_repo.get_all_by_business(business.id)
     if not records:
@@ -224,7 +246,10 @@ def run_combined_analysis(
         all_records=records,
     )
 
-    return RiskAnalysisRepository(db).create(analysis_data)
+    result = RiskAnalysisRepository(db).create(analysis_data)
+    current_user.analyses_count += 1
+    db.commit()
+    return result
 
 
 @router.get("/{business_id}/analysis")

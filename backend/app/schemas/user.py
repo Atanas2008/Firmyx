@@ -44,6 +44,8 @@ class UserRead(BaseModel):
     full_name: str
     role: UserRole
     is_active: bool
+    analyses_count: int = 0
+    is_unlocked: bool = False
     created_at: datetime
     updated_at: datetime
 

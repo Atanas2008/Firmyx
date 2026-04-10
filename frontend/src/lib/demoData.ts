@@ -1,13 +1,169 @@
 /**
  * Pre-built demo data for onboarding.
- * A realistic "messy SME" — a small restaurant chain with high risk profile.
- * Designed to showcase every feature: liquidity issues, high leverage,
- * declining revenue, tight cash runway.
+ * Default scenario: a healthy, growing tech startup (positive first impression).
+ * Alternate scenario: a distressed restaurant chain (showcases alerts & urgency).
  */
 
 import type { Business, RiskAnalysis, FinancialRecord } from '@/types';
 
+// ── Healthy default: NovaTech Solutions ─────────────────────────────
+
 export const DEMO_BUSINESS: Business = {
+  id: 'demo-business-002',
+  name: 'NovaTech Solutions',
+  industry: 'Technology',
+  country: 'United States',
+  num_employees: 52,
+  years_operating: 6,
+  monthly_fixed_costs: 95000,
+  created_at: '2024-03-10T10:00:00Z',
+};
+
+export const DEMO_FINANCIALS: FinancialRecord[] = [
+  {
+    id: 'demo-fin-h01',
+    business_id: 'demo-business-002',
+    period_month: 1,
+    period_year: 2026,
+    monthly_revenue: 390000,
+    monthly_expenses: 320000,
+    payroll: 185000,
+    rent: 22000,
+    debt: 120000,
+    cash_reserves: 510000,
+    taxes: 18000,
+    cost_of_goods_sold: 62000,
+    total_assets: 890000,
+    current_liabilities: 105000,
+    ebit: 70000,
+    retained_earnings: 240000,
+    created_at: '2026-02-05T08:00:00Z',
+  },
+  {
+    id: 'demo-fin-h02',
+    business_id: 'demo-business-002',
+    period_month: 2,
+    period_year: 2026,
+    monthly_revenue: 415000,
+    monthly_expenses: 330000,
+    payroll: 190000,
+    rent: 22000,
+    debt: 115000,
+    cash_reserves: 580000,
+    taxes: 20000,
+    cost_of_goods_sold: 64000,
+    total_assets: 920000,
+    current_liabilities: 100000,
+    ebit: 85000,
+    retained_earnings: 325000,
+    created_at: '2026-03-05T08:00:00Z',
+  },
+  {
+    id: 'demo-fin-h03',
+    business_id: 'demo-business-002',
+    period_month: 3,
+    period_year: 2026,
+    monthly_revenue: 430000,
+    monthly_expenses: 373000,
+    payroll: 195000,
+    rent: 22000,
+    debt: 110000,
+    cash_reserves: 620000,
+    taxes: 21000,
+    cost_of_goods_sold: 66000,
+    total_assets: 950000,
+    current_liabilities: 98000,
+    ebit: 57000,
+    retained_earnings: 382000,
+    created_at: '2026-04-05T08:00:00Z',
+  },
+];
+
+export const DEMO_ANALYSIS: RiskAnalysis = {
+  id: 'demo-analysis-h01',
+  business_id: 'demo-business-002',
+  financial_record_id: 'demo-fin-h03',
+  profit_margin: 13.27,
+  burn_rate: 0,
+  cash_runway_months: 99,
+  revenue_trend: 0.051,
+  expense_trend: 0.082,
+  debt_ratio: 0.135,
+  liquidity_ratio: 8.4,
+  altman_z_score: 5.2,
+  financial_health_score: 59,
+  bankruptcy_probability: 5,
+  risk_score: 41,
+  risk_level: 'medium',
+  recommendations: [
+    'Expense growth (8.2%) is outpacing revenue growth (5.1%) — review cost drivers before the gap widens.',
+    'Consider deploying excess cash reserves into short-term yield instruments.',
+    'Maintain current debt levels — leverage is well within healthy range.',
+  ],
+  risk_explanation:
+    'Medium risk driven primarily by rising expenses outpacing revenue growth. Strong liquidity and low leverage provide a solid buffer.',
+  calculation_sources: {
+    total_assets: 'provided',
+    current_liabilities: 'provided',
+    ebit: 'provided',
+    retained_earnings: 'provided',
+    scoring_model_version: '5.0',
+    drivers: ['Expense growth outpacing revenue', 'Profitability (margin 13.3%)', 'Strong liquidity (ratio 8.4)'],
+    explanation: 'Medium risk: healthy balance sheet with good liquidity, but expense trajectory needs monitoring.',
+    expense_ratio: 86.7,
+    risk_level_display: 'Medium Risk',
+  },
+  analysis_scope: 'monthly',
+  period_month: 3,
+  period_year: 2026,
+  industry_model_applied: 'technology',
+  created_at: '2026-04-06T09:00:00Z',
+};
+
+/** Monthly analyses for charts — January through March 2026 */
+export const DEMO_MONTHLY_ANALYSES: RiskAnalysis[] = [
+  {
+    ...DEMO_ANALYSIS,
+    id: 'demo-analysis-h-jan',
+    financial_record_id: 'demo-fin-h01',
+    profit_margin: 17.95,
+    burn_rate: 0,
+    cash_runway_months: 99,
+    revenue_trend: null,
+    expense_trend: null,
+    risk_score: 34,
+    risk_level: 'medium',
+    financial_health_score: 66,
+    bankruptcy_probability: 4,
+    altman_z_score: 5.6,
+    liquidity_ratio: 8.9,
+    period_month: 1,
+    created_at: '2026-02-05T09:00:00Z',
+  },
+  {
+    ...DEMO_ANALYSIS,
+    id: 'demo-analysis-h-feb',
+    financial_record_id: 'demo-fin-h02',
+    profit_margin: 19.64,
+    burn_rate: 0,
+    cash_runway_months: 99,
+    revenue_trend: 0.064,
+    expense_trend: 0.031,
+    risk_score: 37,
+    risk_level: 'medium',
+    financial_health_score: 63,
+    bankruptcy_probability: 3,
+    altman_z_score: 5.8,
+    liquidity_ratio: 9.2,
+    period_month: 2,
+    created_at: '2026-03-05T09:00:00Z',
+  },
+  DEMO_ANALYSIS,
+];
+
+// ── Distressed alternate: Metro Bistro Group ────────────────────────
+
+export const DEMO_DISTRESSED_BUSINESS: Business = {
   id: 'demo-business-001',
   name: 'Metro Bistro Group',
   industry: 'Food & Beverage',
@@ -18,7 +174,7 @@ export const DEMO_BUSINESS: Business = {
   created_at: '2025-09-15T10:00:00Z',
 };
 
-export const DEMO_FINANCIALS: FinancialRecord[] = [
+export const DEMO_DISTRESSED_FINANCIALS: FinancialRecord[] = [
   {
     id: 'demo-fin-001',
     business_id: 'demo-business-001',
@@ -78,7 +234,7 @@ export const DEMO_FINANCIALS: FinancialRecord[] = [
   },
 ];
 
-export const DEMO_ANALYSIS: RiskAnalysis = {
+export const DEMO_DISTRESSED_ANALYSIS: RiskAnalysis = {
   id: 'demo-analysis-001',
   business_id: 'demo-business-001',
   financial_record_id: 'demo-fin-003',
@@ -119,10 +275,10 @@ export const DEMO_ANALYSIS: RiskAnalysis = {
   created_at: '2026-04-06T09:00:00Z',
 };
 
-/** Monthly analyses for charts — January through March 2026 */
-export const DEMO_MONTHLY_ANALYSES: RiskAnalysis[] = [
+/** Monthly analyses for distressed scenario */
+export const DEMO_DISTRESSED_MONTHLY: RiskAnalysis[] = [
   {
-    ...DEMO_ANALYSIS,
+    ...DEMO_DISTRESSED_ANALYSIS,
     id: 'demo-analysis-jan',
     financial_record_id: 'demo-fin-001',
     profit_margin: -14.3,
@@ -140,7 +296,7 @@ export const DEMO_MONTHLY_ANALYSES: RiskAnalysis[] = [
     created_at: '2026-02-05T09:00:00Z',
   },
   {
-    ...DEMO_ANALYSIS,
+    ...DEMO_DISTRESSED_ANALYSIS,
     id: 'demo-analysis-feb',
     financial_record_id: 'demo-fin-002',
     profit_margin: -20.9,
@@ -157,5 +313,5 @@ export const DEMO_MONTHLY_ANALYSES: RiskAnalysis[] = [
     period_month: 2,
     created_at: '2026-03-05T09:00:00Z',
   },
-  DEMO_ANALYSIS,
+  DEMO_DISTRESSED_ANALYSIS,
 ];

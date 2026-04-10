@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent flash during React hydration */
+html.no-fouc body {
+  opacity: 0;
+}
+body {
+  transition: opacity 0.15s ease;
+}
+
 @layer base {
   :root {
     --bg-primary: #ffffff;

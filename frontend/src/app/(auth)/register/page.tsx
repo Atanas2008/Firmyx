@@ -86,7 +86,7 @@ export default function RegisterPage() {
         </div>
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/logo.png" alt="Firmyx" className="h-14 brightness-0 invert" />
+            <img src="/logo.png" alt="Firmyx" className="h-20 brightness-0 invert" />
           </div>
         </div>
         <div className="relative z-10 space-y-8">
@@ -123,8 +123,8 @@ export default function RegisterPage() {
         <div className="w-full max-w-[400px] animate-fade-in-up">
           {/* Mobile logo */}
           <div className="mb-8 text-center lg:hidden">
-            <img src="/logo.png" alt="Firmyx" className="h-10 mx-auto dark:hidden" />
-            <img src="/logo-dark.png" alt="Firmyx" className="h-10 mx-auto hidden dark:block" />
+            <img src="/logo.png" alt="Firmyx" className="h-16 mx-auto dark:hidden" />
+            <img src="/logo-dark.png" alt="Firmyx" className="h-16 mx-auto hidden dark:block" />
           </div>
 
           <div>
@@ -148,6 +148,13 @@ export default function RegisterPage() {
             <Input label={t.auth.confirmPassword} type="password" placeholder={t.auth.repeatPassword} value={form.confirmPassword} onChange={(e) => setField('confirmPassword', e.target.value)} error={errors.confirmPassword} autoComplete="new-password" required />
             <Button type="submit" loading={loading} className="w-full" size="lg">{t.auth.createAccount}</Button>
           </form>
+
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-4">
+            {t.auth.agreeToTerms}{' '}
+            <Link href="/terms" className="text-blue-600 hover:underline dark:text-blue-400">{t.auth.termsLink}</Link>{' '}
+            {t.common.and}{' '}
+            <Link href="/privacy" className="text-blue-600 hover:underline dark:text-blue-400">{t.auth.privacyLink}</Link>.
+          </p>
 
           <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
             {t.auth.hasAccount}{' '}

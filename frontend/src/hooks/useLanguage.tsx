@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   type ReactNode,
 } from 'react';
@@ -22,16 +21,14 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 const DICTIONARIES: Record<Language, Dictionary> = { en, bg };
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLangState] = useState<Language>('en');
+function getInitialLanguage(): Language {
+  if (typeof window === 'undefined') return 'en';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'en' || stored === 'bg' ? stored : 'en';
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'en' || stored === 'bg') {
-      setLangState(stored);
-      document.documentElement.lang = stored;
-    }
-  }, []);
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLangState] = useState<Language>(getInitialLanguage);
 
   const setLanguage = useCallback((lang: Language) => {
     setLangState(lang);

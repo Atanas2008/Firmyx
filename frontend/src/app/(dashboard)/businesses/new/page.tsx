@@ -224,10 +224,10 @@ export default function NewBusinessPage() {
                 label={t.businesses.yearsOperating}
                 type="number"
                 min="0"
-                step="0.5"
+                step="1"
                 value={form.years_operating}
                 onChange={(e) =>
-                  setField('years_operating', parseFloat(e.target.value) || 0)
+                  setField('years_operating', parseInt(e.target.value) || 0)
                 }
                 error={errors.years_operating}
                 hint="Enter 0 if less than a year"

@@ -195,6 +195,7 @@ If a user asks about accuracy, note which values were provided vs estimated."""
                     "max_output_tokens": 1024,
                     "temperature": 0.7,
                 },
+                request_options={"timeout": 30},
             )
             reply = response.text or FALLBACK_MESSAGE
             tokens_used = (

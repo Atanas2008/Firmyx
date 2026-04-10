@@ -50,7 +50,7 @@ export default function LoginPage() {
         </div>
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/logo.png" alt="Firmyx" className="h-14 brightness-0 invert" />
+            <img src="/logo.png" alt="Firmyx" className="h-20 brightness-0 invert" />
           </div>
         </div>
         <div className="relative z-10 space-y-8">
@@ -87,8 +87,8 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px] animate-fade-in-up">
           {/* Mobile logo */}
           <div className="mb-8 text-center lg:hidden">
-            <img src="/logo.png" alt="Firmyx" className="h-14 mx-auto dark:hidden" />
-            <img src="/logo-dark.png" alt="Firmyx" className="h-14 mx-auto hidden dark:block" />
+            <img src="/logo.png" alt="Firmyx" className="h-20 mx-auto dark:hidden" />
+            <img src="/logo-dark.png" alt="Firmyx" className="h-20 mx-auto hidden dark:block" />
             <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">{t.auth.tagline}</p>
           </div>
 

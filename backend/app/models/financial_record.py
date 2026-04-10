@@ -10,7 +10,7 @@ class FinancialRecord(Base):
     __tablename__ = "financial_records"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False)
+    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True)
     period_month = Column(Integer, nullable=False)
     period_year = Column(Integer, nullable=False)
     monthly_revenue = Column(Numeric(15, 2), nullable=False)
