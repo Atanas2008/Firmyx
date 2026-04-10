@@ -56,6 +56,8 @@ export const en = {
     enterCredentials: 'Please enter your email and password.',
     invalidCredentials: 'Invalid email or password.',
     registrationFailed: 'Registration failed. Please try again.',
+    tooManyAttempts: 'Too many registration attempts. Please try again later.',
+    networkError: 'Cannot connect to the server. Please check your connection.',
     namePlaceholder: 'Jane Smith',
     registerEmailPlaceholder: 'jane@company.com',
     agreeToTerms: 'By creating an account, you agree to our',

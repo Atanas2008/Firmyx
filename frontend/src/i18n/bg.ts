@@ -58,6 +58,8 @@ export const bg: Dictionary = {
     enterCredentials: 'Моля, въведете имейл и парола.',
     invalidCredentials: 'Невалиден имейл или парола.',
     registrationFailed: 'Регистрацията не успя. Моля, опитайте отново.',
+    tooManyAttempts: 'Твърде много опити за регистрация. Моля, опитайте по-късно.',
+    networkError: 'Не може да се свърже със сървъра. Проверете връзката си.',
     namePlaceholder: 'Иван Иванов',
     registerEmailPlaceholder: 'ivan@компания.com',
     agreeToTerms: 'Със създаването на акаунт, вие се съгласявате с нашите',

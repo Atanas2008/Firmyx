@@ -46,12 +46,22 @@ export default function RegisterPage() {
       setSuccess(true);
       setTimeout(() => router.push('/login'), 2500);
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: unknown; error?: unknown } } };
+      const status = axiosErr.response?.status;
+      const data = axiosErr.response?.data;
+      const detail = data?.detail;
+      const errorField = data?.error;
       let msg: string;
-      if (typeof detail === 'string') {
+      if (status === 429) {
+        msg = t.auth.tooManyAttempts ?? 'Too many registration attempts. Please try again later.';
+      } else if (typeof detail === 'string') {
         msg = detail;
       } else if (Array.isArray(detail) && detail.length > 0) {
         msg = detail.map((e: { msg?: string }) => e.msg ?? '').filter(Boolean).join(' ');
+      } else if (typeof errorField === 'string') {
+        msg = errorField;
+      } else if (!axiosErr.response) {
+        msg = t.auth.networkError ?? 'Cannot connect to the server. Please check your connection.';
       } else {
         msg = t.auth.registrationFailed;
       }
